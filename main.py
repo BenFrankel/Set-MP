@@ -2,11 +2,15 @@ import pygame
 
 import setgame_gui
 import gui
-import constants
+import const
+import font_loader
 
 
-screen = gui.Screen((constants.screen_width, constants.screen_height))
-screen.bg_color = constants.screen_bg_color
+pygame.init()
+font_loader.load()
+
+screen = gui.Screen((const.screen_width, const.screen_height))
+screen.bg_color = const.screen_bg_color
 screen.register(setgame_gui.GameEntity(screen))
 
 fps_clock = pygame.time.Clock()

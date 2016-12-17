@@ -1,8 +1,8 @@
 import pygame
 
+import font_loader
 
-# TODO: Z-value for children.
-# TODO: Hitbox and custom contains().
+
 class Entity(pygame.Rect):
     def __init__(self, *args, visible=True, hoverable=True, clickable=True, active=True):
         super().__init__(*args)
@@ -10,6 +10,7 @@ class Entity(pygame.Rect):
         self.children = []
         self.active_child = None
         self._surf = pygame.Surface(self.size, pygame.SRCALPHA)
+        self.hitbox = None
         self.visible = visible
         self.hoverable = hoverable
         self.clickable = clickable
@@ -58,32 +59,35 @@ class Entity(pygame.Rect):
         for child in children:
             self.unregister(child)
 
-    def key_down(self, event):
+    def key_down(self, unicode, key, mod):
         if self.active_child is not None:
-            self.active_child.key_down(event)
+            self.active_child.key_down(unicode, key, mod)
 
-    def key_up(self, event):
+    def key_up(self, key, mod):
         if self.active_child is not None:
-            self.active_child.key_down(event)
+            self.active_child.key_down(key, mod)
 
-    def hover(self, event):
+    def mouse_motion(self, pos, rel, buttons):
         for child in self.children:
-            if child.hoverable and child.active and child.collidepoint(event.pos):
-                child.hover(event)
+            if child.hoverable and child.active and child.contains(pos):
+                child.mouse_motion(pos, rel, buttons)
 
-    def mouse_down(self, event):
+    def mouse_down(self, pos, button):
         for child in self.children:
-            if child.clickable and child.active and child.collidepoint(event.pos):
-                rel_pos = (event.pos[0] - child.x, event.pos[1] - child.y)
-                rel_event = pygame.event.Event(event.type, pos=rel_pos, button=event.button)
-                child.mouse_down(rel_event)
+            if child.clickable and child.active and child.contains(pos):
+                rel_pos = (pos[0] - child.x, pos[1] - child.y)
+                child.mouse_down(rel_pos, button)
 
-    def mouse_up(self, event):
+    def mouse_up(self, pos, button):
         for child in self.children:
-            if child.clickable and child.active and child.collidepoint(event.pos):
-                rel_pos = (event.pos[0] - child.x, event.pos[1] - child.y)
-                rel_event = pygame.event.Event(event.type, pos=rel_pos, button=event.button)
-                child.mouse_up(rel_event)
+            if child.clickable and child.active and child.contains(pos):
+                rel_pos = (pos[0] - child.x, pos[1] - child.y)
+                child.mouse_up(rel_pos, button)
+
+    def contains(self, pos):
+        if self.hitbox is not None:
+            return self.hitbox.collidepoint(pos)
+        return self.collidepoint(pos)
 
     def pre_draw(self):
         self.surf.fill((0, 0, 0, 0))
@@ -115,31 +119,72 @@ class Entity(pygame.Rect):
 class StyledEntity(Entity):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.style = None
+        self._style = None
 
-    def set_style(self, style):
-        self.style = style
+    @property
+    def style(self):
+        return self._style
+
+    @style.setter
+    def style(self, other):
+        self._style = other
         for child in self.children:
-            child.set_style(style)
+            try:
+                child.style = other
+            except AttributeError:
+                pass
 
     def register(self, child):
-        child.set_style(self.style)
+        try:
+            child.style = self.style
+        except AttributeError:
+            pass
         super().register(child)
 
     def unregister(self, child):
-        child.set_style(None)
+        try:
+            child.style = None
+        except AttributeError:
+            pass
         super().unregister(child)
+
+
+class Text(Entity):
+    def __init__(self, fontsize, text='', font=None, **kwargs):
+        super().__init__(0, 0, 0, fontsize, **kwargs)
+        self._text = text
+        self.font = font
+        self.fontsize = fontsize
+        if font is None:
+            self.font = font_loader.default
+        new_rect = self.font.get_rect(self.text, size=fontsize)
+        self.w = new_rect.w
+        self.h = new_rect.h
+
+    @property
+    def text(self):
+        return self._text
+
+    @text.setter
+    def text(self, other):
+        self._text = other
+        new_rect = self.font.get_rect(self.text, size=self.fontsize)
+        self.w = new_rect.w
+        self.h = new_rect.h
+
+    def pre_draw(self):
+        self.surf = self.font.render(self.text, size=self.fontsize)[0]
 
 
 class Image(Entity):
     def __init__(self):
-        super().__init__(0, 0, 0, 0, visible=False, hoverable=False, clickable=False, active=False)
+        super().__init__(0, 0, 0, 0, visible=True, hoverable=False, clickable=False, active=False)
         self.loaded = False
         self.image = None
 
     def load(self, filename):
         try:
-            self.surf = self.image = pygame.image.load(filename).convert_alpha()
+            self.image = pygame.image.load(filename).convert_alpha()
         except:
             print('Unable to load image:', filename)
             exit()
@@ -147,11 +192,8 @@ class Image(Entity):
         return self
 
     def pre_draw(self):
-        self.surf = self.image
-
-    def show(self):
         if self.loaded:
-            super().show()
+            self.surf = self.image
 
 
 class Screen(Entity):
@@ -162,15 +204,15 @@ class Screen(Entity):
 
     def handle(self, event):
         if event.type == pygame.KEYDOWN:
-            self.key_down(event)
+            self.key_down(event.unicode, event.key, event.mod)
         elif event.type == pygame.KEYUP:
-            self.key_up(event)
+            self.key_up(event.key, event.mod)
         elif event.type == pygame.MOUSEMOTION:
-            self.hover(event)
+            self.mouse_motion(event.pos, event.rel, event.buttons)
         elif event.type == pygame.MOUSEBUTTONDOWN:
-            self.mouse_down(event)
+            self.mouse_down(event.pos, event.button)
         elif event.type == pygame.MOUSEBUTTONUP:
-            self.mouse_up(event)
+            self.mouse_up(event.pos, event.button)
 
     def pre_draw(self):
         self.surf.fill(self.bg_color)
@@ -182,4 +224,3 @@ class Screen(Entity):
 
 # TODO: class Button
 # TODO: class Menu
-

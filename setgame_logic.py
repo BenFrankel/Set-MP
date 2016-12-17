@@ -1,6 +1,8 @@
 import itertools
 import random
 
+import timer
+
 
 def is_match(values):
     if len(values) != 3:
@@ -60,7 +62,7 @@ class Card:
 
 
 class Deck:
-    def __init__(self, *args, **kwargs):
+    def __init__(self):
         self.cards = [Card(values) for values in itertools.product((0, 1, 2), repeat=4)]
         random.shuffle(self.cards)
         self.draw_deck = self.cards[:]
@@ -107,20 +109,29 @@ class Deck:
         return '<Deck(' + str(self.cards)[1:-1] + ')>'
 
 
-# TODO: Handle end of game.
-# TODO: Track time since game started.
-# TODO: Display cards remaining in draw.
 class Game:
     def __init__(self):
         self.deck = Deck()
         self.found_sets = []
+        self.clock = timer.Timer()
         self.playing = False
 
-    def play(self):
-        self.playing = True
+    def start_game(self):
         self.deck.shuffle()
         for _ in range(12):
             self.deck.draw_card()
+        self.clock.restart()
+        self.playing = True
+
+    def reset_game(self):
+        self.deck.shuffle()
+        self.found_sets = []
+        self.clock.reset()
+        self.playing = False
+
+    def end_game(self):
+        self.clock.pause()
+        self.playing = False
 
     def update(self):
         if self.playing:
@@ -138,9 +149,7 @@ class Game:
                         card.toggle_select()
             while not has_set(self.deck.play_deck):
                 if len(self.deck.draw_deck) < 3:
-                    print('GAME OVER')
-                    self.playing = False
+                    self.end_game()
                     break
                 for _ in range(3):
                     self.deck.draw_card(random.randrange(len(self.deck.play_deck)))
-

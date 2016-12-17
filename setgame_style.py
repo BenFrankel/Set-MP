@@ -1,5 +1,12 @@
 import pygame
 import pygame.gfxdraw
+import pygame.freetype
+
+import const
+import font_loader
+
+
+pygame.freetype.init()
 
 
 class SetGameStyle:
@@ -9,7 +16,7 @@ class SetGameStyle:
         self.sym_texture = sym_texture
         self.sym_color = sym_color
 
-    def card_image(self, size, number, color, texture, shape, selected=False):
+    def card(self, size, number, color, texture, shape, selected=False):
         card_image = self.blank_card(size, selected)
         rect = card_image.get_rect()
 
@@ -26,12 +33,12 @@ class SetGameStyle:
         sym_y = (rect.h - total_h)//2
 
         for _ in range(number):
-            card_image.blit(self.sym_image((sym_w, sym_h), color, texture, shape), (sym_x, sym_y))
+            card_image.blit(self.symbol((sym_w, sym_h), color, texture, shape), (sym_x, sym_y))
             sym_y += sym_h + y_gap
 
         return card_image
 
-    def sym_image(self, size, color, texture, shape):
+    def symbol(self, size, color, texture, shape):
         black = (0, 0, 0)
 
         sym_color = pygame.Surface(size, pygame.SRCALPHA)
@@ -51,11 +58,21 @@ class SetGameStyle:
 
         return surf
 
-    def bg_deck_image(self, size):
+    # TODO: Make customizable.
+    def deck_bg(self, size):
         surf = pygame.Surface(size, pygame.SRCALPHA)
         surf.fill((0, 0, 0, 15))
         pygame.draw.rect(surf, (0, 0, 0), (0, 0, *size), 1)
         pygame.draw.rect(surf, (0, 0, 0, 60), (2, 2, size[0]-4, size[1]-4), 3)
+        return surf
+
+    # TODO: Make customizable.
+    def clock_bg(self, size):
+        surf = pygame.Surface(size, pygame.SRCALPHA)
+        surf.fill((150, 150, 150, 150))
+        rect = surf.get_rect()
+        pygame.draw.rect(surf, (0, 0, 0), rect, 1)
+
         return surf
 
 
