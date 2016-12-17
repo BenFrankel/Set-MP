@@ -5,23 +5,25 @@ import pygame.freetype
 import const
 
 
-font_dir = os.path.join('resources', 'data', 'font')
-digital_clock = None
-default = None
+pygame.freetype.init()
+
+
+font_dict = dict()
 
 
 def load_font(filename):
-    return pygame.freetype.Font(os.path.join(font_dir, filename))
+    return pygame.freetype.Font(os.path.join(const.dir_font, filename))
 
 
 def load():
-    global digital_clock
+    for font_inf in const.fonts:
+        try:
+            font = load_font(font_inf[1])
+        except FileNotFoundError:
+            print('Unable to load font:', font_inf)
+        else:
+            font_dict[font_inf[0]] = font
 
-    try:
-        digital_clock = load_font(const.digital_clock)
-    except:
-        print('Unable to load font:', const.digital_clock)
-        exit()
 
-    global default
-    default = digital_clock
+def get(name):
+    return font_dict[name]

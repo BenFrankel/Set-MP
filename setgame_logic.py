@@ -138,7 +138,7 @@ class Game:
             selected = self.deck.get_selected()
             if len(selected) == 3:
                 if is_set(selected):
-                    for card in selected:
+                    for card in sorted(selected, key=lambda x: x.index):
                         index = card.index
                         self.deck.discard(index)
                         if len(self.deck.play_deck) < 12 and len(self.deck.draw_deck) > 0:

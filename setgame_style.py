@@ -1,23 +1,32 @@
 import pygame
 import pygame.gfxdraw
-import pygame.freetype
 
 import const
-import font_loader
 
 
-pygame.freetype.init()
+def style(deck_bg, clock_bg, card_front, card_back, sym_shape, sym_texture, sym_color):
+    def symbol(size, color, texture, shape):
+        black = (0, 0, 0)
 
+        s_color = pygame.Surface(size, pygame.SRCALPHA)
+        s_color.fill(sym_color(color))
+        s_texture = sym_texture(size, texture)
+        s_outline, s_mask = sym_shape(size, shape)
 
-class SetGameStyle:
-    def __init__(self, blank_card, sym_shape, sym_texture, sym_color):
-        self.blank_card = blank_card
-        self.sym_shape = sym_shape
-        self.sym_texture = sym_texture
-        self.sym_color = sym_color
+        surf = pygame.Surface(size, pygame.SRCALPHA)
 
-    def card(self, size, number, color, texture, shape, selected=False):
-        card_image = self.blank_card(size, selected)
+        s_outline.blit(s_color, (0, 0), None, pygame.BLEND_MULT)
+        surf.blit(s_outline, (0, 0))
+
+        s_mask.blit(s_texture, (0, 0), None, pygame.BLEND_MULT)
+        s_mask.set_colorkey(black)
+        s_mask.blit(s_color, (0, 0), None, pygame.BLEND_MULT)
+        surf.blit(s_mask, (0, 0))
+
+        return surf
+
+    def card(size, number, color, texture, shape, selected=False):
+        card_image = card_front(size, selected)
         rect = card_image.get_rect()
 
         number += 1
@@ -33,61 +42,101 @@ class SetGameStyle:
         sym_y = (rect.h - total_h)//2
 
         for _ in range(number):
-            card_image.blit(self.symbol((sym_w, sym_h), color, texture, shape), (sym_x, sym_y))
+            card_image.blit(symbol((sym_w, sym_h), color, texture, shape), (sym_x, sym_y))
             sym_y += sym_h + y_gap
 
         return card_image
 
-    def symbol(self, size, color, texture, shape):
-        black = (0, 0, 0)
-
-        sym_color = pygame.Surface(size, pygame.SRCALPHA)
-        sym_color.fill(self.sym_color(color))
-        sym_texture = self.sym_texture(size, texture)
-        sym_outline, sym_mask = self.sym_shape(size, shape)
+    def draw_deck(size, num_cards):
+        card_w = size[0] // 1.3
+        card_h = size[1] // 1.3
+        layers = (num_cards + 3) // 6
 
         surf = pygame.Surface(size, pygame.SRCALPHA)
-
-        sym_outline.blit(sym_color, (0, 0), None, pygame.BLEND_MULT)
-        surf.blit(sym_outline, (0, 0))
-
-        sym_mask.blit(sym_texture, (0, 0), None, pygame.BLEND_MULT)
-        sym_mask.set_colorkey(black)
-        sym_mask.blit(sym_color, (0, 0), None, pygame.BLEND_MULT)
-        surf.blit(sym_mask, (0, 0))
-
-        return surf
-
-    # TODO: Make customizable.
-    def deck_bg(self, size):
-        surf = pygame.Surface(size, pygame.SRCALPHA)
-        surf.fill((0, 0, 0, 15))
-        pygame.draw.rect(surf, (0, 0, 0), (0, 0, *size), 1)
-        pygame.draw.rect(surf, (0, 0, 0, 60), (2, 2, size[0]-4, size[1]-4), 3)
-        return surf
-
-    # TODO: Make customizable.
-    def clock_bg(self, size):
-        surf = pygame.Surface(size, pygame.SRCALPHA)
-        surf.fill((150, 150, 150, 150))
         rect = surf.get_rect()
-        pygame.draw.rect(surf, (0, 0, 0), rect, 1)
+
+        card_x = 2
+        card_y = rect.h - card_h - 2
+        pygame.draw.rect(surf, (255, 255, 255, 60), (card_x - 2, card_y + 2, card_w, card_h))
+        pygame.draw.rect(surf, (0, 0, 0), (card_x - 2, card_y + 2, card_w, card_h), 1)
+        for _ in range(layers):
+            surf.blit(card_back((card_w, card_h)), (card_x, card_y))
+            card_x += 2
+            card_y -= 2
 
         return surf
 
+    def discard_deck(size, num_cards, top_card):
+        card_w = size[0] // 1.3
+        card_h = size[1] // 1.3
+        layers = (num_cards + 3) // 6
 
-def def_blank_card(size, selected=False):
-    card_image = pygame.Surface(size)
+        surf = pygame.Surface(size, pygame.SRCALPHA)
+        rect = surf.get_rect()
 
-    card_image.fill((245, 245, 245))
-    pygame.draw.rect(card_image, (1, 1, 1), card_image.get_rect(), 1)
+        card_x = rect.w - card_w - 2
+        card_y = rect.h - card_h - 2
+        pygame.draw.rect(surf, (255, 255, 255, 60), (card_x + 2, card_y + 2, card_w, card_h))
+        pygame.draw.rect(surf, (0, 0, 0), (card_x + 2, card_y + 2, card_w, card_h), 1)
+        for _ in range(layers):
+            surf.blit(card_front((card_w, card_h)), (card_x, card_y))
+            card_x -= 2
+            card_y -= 2
+        if top_card is not None:
+            surf.blit(card((card_w, card_h), *top_card.values), (card_x + 2, card_y + 2))
+
+        return surf
+
+    return {const.style_card: card,
+            const.style_card_back: card_back,
+            const.style_clock_bg: clock_bg,
+            const.style_deck_bg: deck_bg,
+            const.style_discard_deck: discard_deck,
+            const.style_draw_deck: draw_deck}
+
+
+def def_deck_bg(size):
+    surf = pygame.Surface(size, pygame.SRCALPHA)
+    surf.fill((0, 0, 0, 15))
+
+    pygame.draw.rect(surf, (0, 0, 0), (0, 0, *size), 1)
+    pygame.draw.rect(surf, (0, 0, 0, 60), (2, 2, size[0]-4, size[1]-4), 3)
+
+    return surf
+
+
+def def_clock_bg(size):
+    surf = pygame.Surface(size, pygame.SRCALPHA)
+    surf.fill((150, 150, 150, 150))
+
+    pygame.draw.rect(surf, (0, 0, 0), surf.get_rect(), 1)
+
+    return surf
+
+
+def def_card_front(size, selected=False):
+    surf = pygame.Surface(size, pygame.SRCALPHA)
+    rect = surf.get_rect()
+
+    surf.fill((245, 245, 245))
+    pygame.draw.rect(surf, (1, 1, 1), rect, 1)
 
     if selected:
         shade = pygame.Surface(size, pygame.SRCALPHA)
         shade.fill((0, 0, 0, 40))
-        card_image.blit(shade, (0, 0))
+        surf.blit(shade, (0, 0))
 
-    return card_image
+    return surf
+
+
+def def_card_back(size):
+    surf = pygame.Surface(size, pygame.SRCALPHA)
+    rect = surf.get_rect()
+
+    surf.fill((120, 20, 120))
+    pygame.draw.rect(surf, (1, 1, 1), rect, 1)
+
+    return surf
 
 
 def def_sym_color(color):
@@ -150,4 +199,10 @@ def def_sym_shape(size, shape):
     return outline, mask
 
 
-default = SetGameStyle(def_blank_card, def_sym_shape, def_sym_texture, def_sym_color)
+default = style(def_deck_bg,
+                def_clock_bg,
+                def_card_front,
+                def_card_back,
+                def_sym_shape,
+                def_sym_texture,
+                def_sym_color)

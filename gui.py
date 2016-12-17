@@ -1,6 +1,7 @@
 import pygame
 
 import font_loader
+import const
 
 
 class Entity(pygame.Rect):
@@ -119,34 +120,17 @@ class Entity(pygame.Rect):
 class StyledEntity(Entity):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._style = None
+        self.style = dict()
 
-    @property
-    def style(self):
-        return self._style
+    def add_style(self, style, **kwargs):
+        self.style.update(style, **kwargs)
 
-    @style.setter
-    def style(self, other):
-        self._style = other
-        for child in self.children:
-            try:
-                child.style = other
-            except AttributeError:
-                pass
-
-    def register(self, child):
-        try:
-            child.style = self.style
-        except AttributeError:
-            pass
-        super().register(child)
-
-    def unregister(self, child):
-        try:
-            child.style = None
-        except AttributeError:
-            pass
-        super().unregister(child)
+    def style_draw(self, name, *args, **kwargs):
+        if name not in self.style:
+            if self.parent is None:
+                raise KeyError('Cannot find style to handle drawing\'' + name + '\'.')
+            return self.parent.style_draw(name, *args, **kwargs)
+        return self.style[name](*args, **kwargs)
 
 
 class Text(Entity):
@@ -156,7 +140,7 @@ class Text(Entity):
         self.font = font
         self.fontsize = fontsize
         if font is None:
-            self.font = font_loader.default
+            self.font = font_loader.get(const.font_default)
         new_rect = self.font.get_rect(self.text, size=fontsize)
         self.w = new_rect.w
         self.h = new_rect.h
@@ -185,7 +169,7 @@ class Image(Entity):
     def load(self, filename):
         try:
             self.image = pygame.image.load(filename).convert_alpha()
-        except:
+        except FileNotFoundError:
             print('Unable to load image:', filename)
             exit()
         self.loaded = True
