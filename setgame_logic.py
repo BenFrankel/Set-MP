@@ -114,27 +114,32 @@ class Game:
         self.deck = Deck()
         self.found_sets = []
         self.clock = timer.Timer()
-        self.playing = False
+        self.completed = False
 
     def start_game(self):
-        self.deck.shuffle()
+        # TESTING ENDGAME
+        # for i in range(69):
+        #     self.deck.draw_card()
+        #     self.deck.discard(0)
         for _ in range(12):
             self.deck.draw_card()
         self.clock.restart()
-        self.playing = True
+        self.completed = False
 
     def reset_game(self):
         self.deck.shuffle()
         self.found_sets = []
         self.clock.reset()
-        self.playing = False
+        self.completed = False
 
     def end_game(self):
         self.clock.pause()
-        self.playing = False
+        for card in self.deck.play_deck:
+            card.discard()
+        self.completed = True
 
     def update(self):
-        if self.playing:
+        if not self.completed:
             selected = self.deck.get_selected()
             if len(selected) == 3:
                 if is_set(selected):
@@ -150,6 +155,6 @@ class Game:
             while not has_set(self.deck.play_deck):
                 if len(self.deck.draw_deck) < 3:
                     self.end_game()
-                    break
+                    return
                 for _ in range(3):
                     self.deck.draw_card(random.randrange(len(self.deck.play_deck)))

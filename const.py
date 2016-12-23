@@ -25,9 +25,13 @@ font_default = ubuntu_mono[0]
 
 
 # STYLE NAMES
+# - SETGAME
 style_card = 'card'
 style_card_back = 'card back'
 style_draw_deck = 'draw deck'
 style_discard_deck = 'discard deck'
 style_deck_bg = 'deck background'
 style_clock_bg = 'clock background'
+
+# - GENERAL
+style_button = 'button'
