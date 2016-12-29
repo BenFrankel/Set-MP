@@ -1,31 +1,33 @@
-import gui
-import menu
-import setgame_logic
+from gui import Entity, Text
+from menu import WidgetState, Widget, Button
+from setgame_logic import Game
+
 import setgame_style
 import font_loader
 import const
 
 
-class CardEntity(menu.Widget):
+# TODO: Card cannot detect
+class CardEntity(Widget):
     def __init__(self, card, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.card = card
 
-    def state_change(self, before, after):
-        if before == menu.Widget.HOVER and after == menu.Widget.PRESS:
+    def widget_state_change(self, before, after):
+        if before == WidgetState.HOVER and after == WidgetState.PRESS:
             self.card.toggle_select()
 
-    def get_base_state(self):
-        return (self.card.selected,) + super().get_base_state()
+    def get_state(self):
+        return (self.card.selected,) + super().get_state()
 
-    def update_base(self):
+    def update_background(self):
         try:
-            self.base = self.style_get(const.style_card, self.size, *self.card.values, self.card.selected)
+            self.background = self.style_get(const.style_card, self.size, *self.card.values, self.card.selected)
         except KeyError:
-            pass
+            super().update_background()
 
 
-class DeckEntity(gui.Entity):
+class DeckEntity(Entity):
     def __init__(self, deck, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.deck = deck
@@ -47,32 +49,30 @@ class DeckEntity(gui.Entity):
         half_gap_h = (self.h - (self.h // rows) * (rows - 1) - e_card_h)//2
         for e_card in self.e_cards:
             if e_card.card.in_play():
-                e_card.size = (e_card_w, e_card_h)
+                e_card.resize((e_card_w, e_card_h))
                 e_card.x = half_gap_w + (self.w // cols) * (e_card.card.index % cols)
                 e_card.y = half_gap_h + (self.h // rows) * (e_card.card.index // cols)
                 if e_card.card.selected:
                     e_card.y -= half_gap_h//2
-                e_card.show()
-            else:
+                if not e_card.visible:
+                    e_card.show()
+            elif e_card.visible:
                 e_card.hide()
         super().update()
 
-    def get_base_state(self):
-        return (self.deck,) + super().get_base_state()
-
-    def update_base(self):
+    def update_background(self):
         try:
-            self.base = self.style_get(const.style_deck_bg, self.size)
+            self.background = self.style_get(const.style_deck_bg, self.size)
         except KeyError:
-            pass
+            super().update_background()
 
 
-class ClockEntity(gui.Entity):
+class ClockEntity(Entity):
     def __init__(self, clock, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.clock = clock
         text_h = int(self.h * 0.9)
-        self.e_text = gui.Text(fontsize=text_h, font=font_loader.get(const.font_digital_clock))
+        self.e_text = Text(fontsize=text_h, font=font_loader.get(const.font_digital_clock))
         self.register(self.e_text)
 
     def update(self):
@@ -84,53 +84,74 @@ class ClockEntity(gui.Entity):
         self.e_text.y = (self.h - self.e_text.h) // 2
         super().update()
 
-    def update_base(self):
+    def update_background(self):
         try:
-            self.base = self.style_get(const.style_clock_bg, self.size)
+            self.background = self.style_get(const.style_clock_bg, self.size)
         except KeyError:
-            pass
+            super().update_background()
 
 
-class DrawDeckEntity(gui.Entity):
+class DrawDeckEntity(Entity):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.num_cards = 81
+        self._num_cards = 81
 
-    def get_base_state(self):
-        return self.num_cards
+    @property
+    def num_cards(self):
+        return self._num_cards
 
-    def update_base(self):
+    @num_cards.setter
+    def num_cards(self, other):
+        if self._num_cards != other:
+            self.update_background()
+        self._num_cards = other
+
+    def update_background(self):
         try:
-            self.base = self.style_get(const.style_draw_deck, self.size, self.num_cards)
+            self.background = self.style_get(const.style_draw_deck, self.size, self.num_cards)
         except KeyError:
-            pass
+            super().update_background()
 
 
-class DiscardDeckEntity(gui.Entity):
+class DiscardDeckEntity(Entity):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.num_cards = 0
-        self.top_card = None
+        self._num_cards = 0
+        self._top_card = None
 
-    def get_base_state(self):
-        return (self.num_cards, self.top_card) + super().get_base_state()
+    @property
+    def num_cards(self):
+        return self._num_cards
 
-    def update_base(self):
+    @num_cards.setter
+    def num_cards(self, other):
+        if other == 0:
+            self._top_card = None
+        if self._num_cards != other:
+            self.update_background()
+        self._num_cards = other
+
+    @property
+    def top_card(self):
+        return self._top_card
+
+    @top_card.setter
+    def top_card(self, other):
+        if self._top_card != other:
+            self.update_background()
+        self._top_card = other
+
+    def update_background(self):
         try:
-            self.base = self.style_get(const.style_discard_deck, self.size, self.num_cards, self.top_card)
+            self.background = self.style_get(const.style_discard_deck, self.size, self.num_cards, self.top_card)
         except KeyError:
-            pass
-
-    def update(self):
-        if self.num_cards == 0:
-            self.top_card = None
-        super().update()
+            super().update_background()
 
 
-class GameEntity(gui.Entity):
+class GameEntity(Entity):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.game = setgame_logic.Game()
+        self.game = Game()
         self.style_add(setgame_style.default)
 
         deck_w = int(self.w * 0.6)
@@ -164,12 +185,12 @@ class GameEntity(gui.Entity):
         button_w = 100
         button_h = 50
         button_y = (self.e_deck.bottom + self.h - button_h)//2
-        self.restart_button = menu.Button('Restart', 'restart', button_w, button_h)
+        self.restart_button = Button('Restart', 'restart', button_w, button_h)
         self.restart_button.x = (self.w + 2*button_w) // 2
         self.restart_button.y = button_y
         self.register(self.restart_button)
 
-        self.exit_button = menu.Button('Exit', 'exit', button_w, button_h)
+        self.exit_button = Button('Exit', 'exit', button_w, button_h)
         self.exit_button.x = (self.w - 4*button_w)//2
         self.exit_button.y = button_y
         self.register(self.exit_button)

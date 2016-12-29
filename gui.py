@@ -2,55 +2,24 @@ import pygame
 
 import font_loader
 import const
+import time
 
 
-# ? Entity proxy that creates itself when show() and deletes itself when hide()
-# Some events from mouse enter / exit / motion may be lost.
-class Entity:
-    def __init__(self, w, h, x=0, y=0, visible=True, hoverable=True, clickable=True):
-        self._w = w
-        self._h = h
+# TODO: Logical Entity, Concrete Entity.
+class Rect:
+    def __init__(self, x=0, y=0, w=0, h=0):
         self._x = x
         self._y = y
-        self.z = 0
-
-        self.visible = visible
-        self.hoverable = hoverable
-        self.clickable = clickable
-        self.paused = False
-
-        self.hovered = False
-
-        self.parent = None
-        self.children = []
-        self.key_listener = None
-
-        self.base_state = None
-        self._base = pygame.Surface((w, h), pygame.SRCALPHA)
-        self.surf = pygame.Surface((w, h), pygame.SRCALPHA)
-
-        self.hitbox = None
-
-        self.style = dict()
-
-    @property
-    def base(self):
-        return self._base
-
-    @base.setter
-    def base(self, other):
-        self._base = other
-        self._w, self._h = other.get_size()
+        self._w = w
+        self._h = h
 
     @property
     def size(self):
-        self.refresh()
         return self._w, self._h
 
     @size.setter
     def size(self, other):
         self._w, self._h = other
-        self.refresh()
 
     @property
     def w(self):
@@ -210,7 +179,118 @@ class Entity:
     def bottomright(self, other):
         self.right, self.bottom = other
 
+    def area(self):
+        return self.w * self.h
+
+    def collide_point(self, point):
+        return self.left <= point[0] < self.right and self.top <= point[1] < self.bottom
+
+    def collide_rect(self, rect):
+        return self.left < rect.right and rect.left < self.right and self.top < rect.bottom and rect.top < self.bottom
+
+    def intersect(self, rect):
+        result = Rect(max(self.x, rect.x), max(self.y, rect.y))
+        result.w = min(self.right, rect.right) - result.x
+        result.h = min(self.bottom, rect.bottom) - result.y
+        if result.w < 0 or result.h < 0:
+            return None
+        return result
+
+    def as_pygame_rect(self):
+        return pygame.Rect(self.x, self.y, self.w, self.h)
+
+    def __eq__(self, other):
+        return self.x == other.x and self.y == other.y and self.w == other.w and self.h == other.h
+
+    def __str__(self):
+        return '{}({}, {}, {}, {})'.format(self.__class__.__name__, self.x, self.y, self.w, self.h)
+
+    __repr__ = __str__
+
+
+# ? Entity proxy that creates itself when show() and deletes itself when hide()
+class Entity(Rect):
+    def __init__(self, w, h, x=0, y=0, visible=True, hoverable=True, clickable=True):
+        super().__init__(x, y, w, h)
+
+        self.z = 0
+
+        self._visible = visible
+        self.hoverable = hoverable
+        self.clickable = clickable
+        self.paused = False
+
+        self.hovered = False
+
+        self._dirty = True
+        self.dirty_rects = []
+
+        self.parent = None
+        self.children = []
+        self.key_listener = None
+
+        self.current_state = None
+        self._background = pygame.Surface(self.size, pygame.SRCALPHA)
+        self.display = pygame.Surface(self.size, pygame.SRCALPHA)
+
+        self.hitbox = None
+
+        self.style = dict()
+
+        self.old_state = None
+
+    @property
+    def background(self):
+        return self._background
+
+    @background.setter  # Perhaps find a better solution than this to resizing?
+    def background(self, other):
+        if self.size != other.get_size():
+            self.display = pygame.Surface(other.get_size(), pygame.SRCALPHA)
+        self._background = other
+        self.size = other.get_size()
+        self.dirty = True
+
+    @property
+    def visible(self):
+        return self._visible
+
+    @visible.setter
+    def visible(self, other):
+        if self._visible != other:
+            self.dirty = True
+        self._visible = other
+
+    @property
+    def dirty(self):
+        return self._dirty or self.old_state != self.get_state()
+
+    @dirty.setter
+    def dirty(self, other):
+        if other and not self._dirty:
+            self.clean_dirty_rects()
+        self._dirty = other
+
+    def resize(self, size):
+        before = self.size
+        self.size = size
+        if before != size:
+            self.update_background()
+
+    def copy_rect(self):
+        return Rect(self.x, self.y, self.w, self.h)
+
+    def abs_rect(self):
+        if self.parent is None:
+            return self.copy_rect()
+        return Rect(*(x1 + x2 for x1, x2 in zip(self.parent.abs_rect().pos, self.pos)), self.w, self.h)
+
+    def get_state(self):
+        return self.copy_rect(),
+
     def show(self):
+        if not self.visible:
+            self.old_state = self.get_state()
         self.visible = True
         self.unpause()
 
@@ -233,6 +313,7 @@ class Entity:
         if child.parent is not None:
             child.parent.unregister(child)
         child.parent = self
+        child.style_add()  # Hack-ish ...
 
     def register_all(self, children):
         for child in children:
@@ -241,6 +322,7 @@ class Entity:
     def unregister(self, child):
         self.children.remove(child)
         child.parent = None
+        self.add_dirty_rect(child.copy_rect())
 
     def unregister_all(self, children):
         for child in children:
@@ -255,42 +337,37 @@ class Entity:
             self.key_listener.key_down(key, mod)
 
     def mouse_enter(self, start, end, buttons):
+        print('ENTER >', self, end)
         for child in self.children:
-            if child.hoverable and not child.paused and child.contains(end):
+            if child.hoverable and not child.paused and child.collide_point(end):
                 rel_start = (start[0] - child.x, start[1] - child.y)
                 rel_end = (end[0] - child.x, end[1] - child.y)
                 child.mouse_enter(rel_start, rel_end, buttons)
 
     def mouse_exit(self, start, end, buttons):
+        print('EXIT >', self, end)
         for child in self.children:
-            if child.hoverable and not child.paused and child.contains(start):
+            if child.hoverable and not child.paused and child.collide_point(start):
                 rel_start = (start[0] - child.x, start[1] - child.y)
                 rel_end = (end[0] - child.x, end[1] - child.y)
                 child.mouse_exit(rel_start, rel_end, buttons)
 
     def mouse_motion(self, start, end, buttons):
         for child in self.children:
-            if child.hoverable and not child.paused:
-                contains_start = child.contains(start)
-                contains_end = child.contains(end)
+            if child.hoverable and not child.paused and child.collide_point(start) and child.collide_point(end):
                 rel_start = (start[0] - child.x, start[1] - child.y)
                 rel_end = (end[0] - child.x, end[1] - child.y)
-                if contains_start and contains_end:
-                    child.mouse_motion(rel_start, rel_end, buttons)
-                elif contains_start:
-                    child.mouse_exit(rel_start, rel_end, buttons)
-                elif contains_end:
-                    child.mouse_enter(rel_start, rel_end, buttons)
+                child.mouse_motion(rel_start, rel_end, buttons)
 
     def mouse_down(self, pos, button):
         for child in self.children:
-            if child.clickable and not child.paused and child.contains(pos):
+            if child.clickable and not child.paused and child.collide_point(pos):
                 rel_pos = (pos[0] - child.x, pos[1] - child.y)
                 child.mouse_down(rel_pos, button)
 
     def mouse_up(self, pos, button):
         for child in self.children:
-            if child.clickable and not child.paused and child.contains(pos):
+            if child.clickable and not child.paused and child.collide_point(pos):
                 rel_pos = (pos[0] - child.x, pos[1] - child.y)
                 child.mouse_up(rel_pos, button)
 
@@ -301,16 +378,18 @@ class Entity:
         if self.parent is not None:
             self.parent.handle_message(self, message)
 
-    def contains(self, pos):
+    def collide_point(self, point):
         if self.hitbox is not None:
-            return self.hitbox.collidepoint(pos)
-        return self.left <= pos[0] < self.right and self.top <= pos[1] < self.bottom
+            return self.hitbox.collide_point(point)
+        return super().collide_point(point)
 
     def style_add(self, style=None, **kwargs):
         self.style.update(**kwargs)
         if style is not None:
             self.style.update(style)
-        self.draw()
+        self.update_background()
+        for child in self.children:
+            child.style_add()  # Hack-ish ...
 
     def style_get(self, name, *args, **kwargs):
         if name not in self.style:
@@ -319,41 +398,81 @@ class Entity:
             return self.parent.style_get(name, *args, **kwargs)
         return self.style[name](*args, **kwargs)
 
-    def get_base_state(self):
-        return self._x, self._y
+    def add_dirty_rect(self, rect):
+        if not self.dirty and rect not in self.dirty_rects:
+            if rect.area() + sum(r.area() for r in self.dirty_rects) > self.area():
+                self.dirty = True
+            else:
+                self.dirty_rects.append(rect)
+                if self.parent is not None:
+                    self.parent.add_dirty_rect(Rect(self.x + rect.x, self.y + rect.y, rect.w, rect.h))
 
-    def update_base(self):
-        self.base = pygame.Surface(self.size, pygame.SRCALPHA)
-        self.base.fill((0, 0, 0, 0))
+    def clean_dirty_rect(self, rect):
+        self.dirty_rects.remove(rect)
+        if self.parent is not None:
+            self.parent.clean_dirty_rect(Rect(self.x + rect.x, self.y + rect.y, rect.w, rect.h))
 
-    def refresh(self):
-        current_state = self.get_base_state()
-        if self.base_state != current_state:
-            self.base_state = current_state
-            self.update_base()
+    def clean_dirty_rects(self):
+        if self.parent is not None:
+            for rect in self.dirty_rects:
+                self.parent.clean_dirty_rect(Rect(self.x + rect.x, self.y + rect.y, rect.w, rect.h))
+        self.dirty_rects.clear()
 
-    def draw(self):
-        self.refresh()
-        self.surf = self.base.copy()
-        if not all(self.children[i].z <= self.children[i+1].z for i in range(len(self.children) - 1)):
-            self.children.sort(key=lambda x: x.z)
+    def refresh(self, rect):
+        # print(self, 'refresh', rect)
+        self.display.fill((0, 0, 0, 0), rect.as_pygame_rect(), pygame.BLEND_RGBA_MIN)
+        self.display.blit(self.background, rect.pos, rect.as_pygame_rect())
         for child in self.children:
             if child.visible:
-                child.draw()
-        if self.parent is not None:
-            self.parent.surf.blit(self.surf, self.pos)
+                area = rect.intersect(child)
+                if area is not None:
+                    area.x -= child.x
+                    area.y -= child.y
+                    self.display.blit(child.display, (child.x + area.x, child.y + area.y), area.as_pygame_rect())
 
-    def update(self):
-        pos = pygame.mouse.get_pos()
-        if not self.hovered and self.contains(pos):
+    def draw(self):
+        for child in self.children:
+            if child.dirty and not self.dirty:
+                old = child.old_rect
+                comb = Rect(min(child.x, old.x), min(child.y, old.y))
+                comb.w = max(child.right, old.right) - comb.x
+                comb.h = max(child.bottom, old.bottom) - comb.y
+                if child.area() + old.area() > comb.area():
+                    self.add_dirty_rect(comb)
+                else:
+                    self.add_dirty_rect(child.copy_rect())
+                    self.add_dirty_rect(old)
+            child.draw()
+        for rect in self.dirty_rects:
+            self.refresh(rect)
+        if self.dirty:
+            self.refresh(Rect(0, 0, self.w, self.h))
+        changed = self.dirty or bool(self.dirty_rects)
+        self.dirty = False
+        self.dirty_rects.clear()
+        self.old_state = self.get_state()
+        return changed
+
+    def update_background(self):
+        pass
+
+    def update(self):  # Pos is absolute! collide_point is relative!
+        abs_rect = self.abs_rect()
+        print(self, abs_rect)
+        pos = tuple(x1 - x2 for x1, x2 in zip(pygame.mouse.get_pos(), abs_rect.pos))
+        if self.hovered != self.abs_rect().collide_point(pos):
             rel = pygame.mouse.get_rel()
-            self.mouse_enter((pos[0] - rel[0], pos[1] - rel[1]), pos, pygame.mouse.get_pressed())
-        elif self.hovered and not self.contains(pos):
-            rel = pygame.mouse.get_rel()
-            self.mouse_exit((pos[0] - rel[0], pos[1] - rel[1]), pos, pygame.mouse.get_pressed())
+            self.hovered = not self.hovered
+            if self.hovered:
+                self.mouse_enter((pos[0] - rel[0], pos[1] - rel[1]), pos, pygame.mouse.get_pressed())
+            else:
+                self.mouse_exit((pos[0] - rel[0], pos[1] - rel[1]), pos, pygame.mouse.get_pressed())
         for child in self.children:
             if not child.paused:
                 child.update()
+        if not all(self.children[i].z <= self.children[i+1].z for i in range(len(self.children) - 1)):
+            self.children.sort(key=lambda x: x.z)
+            self.dirty = True
 
     def tick(self):
         self.update()
@@ -361,10 +480,9 @@ class Entity:
 
 
 class Screen(Entity):
-    def __init__(self, *size, **kwargs):
-        super().__init__(*size)
-        self.screen = pygame.display.set_mode(size, **kwargs)
-        self.bg_color = (0, 0, 0)
+    def __init__(self, *args, **kwargs):
+        self.screen = pygame.display.set_mode(*args, **kwargs)
+        super().__init__(*self.screen.get_size(), **kwargs)
 
     def handle_event(self, event):
         if event.type == pygame.KEYDOWN:
@@ -385,44 +503,77 @@ class Screen(Entity):
         else:
             super().handle_message(sender, message)
 
-    def get_base_state(self):
-        return (self.bg_color, self.screen.get_size()) + super().get_base_state()
-
-    def update_base(self):
-        self.base = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
-        self.base.fill(self.bg_color)
-
     def draw(self):
-        super().draw()
-        self.screen.blit(self.surf, (0, 0))
-        pygame.display.update()
+        if super().draw():
+            self.screen.blit(self.display, (0, 0))
+            pygame.display.update()
 
 
 class Text(Entity):
     def __init__(self, text='', fontsize=1, fgcolor=None, font=None):
         super().__init__(0, 0, hoverable=False, clickable=False)
-        self.text = text
-        self.font = font
-        self.fontsize = fontsize
+        self._text = text
+        self._font = font
+        self._fontsize = fontsize
         if font is None:
-            self.font = font_loader.get(const.font_default)
+            self._font = font_loader.get(const.font_default)
         self.fgcolor = fgcolor
         if fgcolor is None:
             self.fgcolor = (0, 0, 0)
+        self.update_background()
 
-    def get_base_state(self):
-        return (self.text, self.fontsize, self.font, self.fgcolor) + super().get_base_state()
+    @property
+    def text(self):
+        return self._text
 
-    def update_base(self):
-        self.base = self.font.render(self.text, fgcolor=self.fgcolor, size=self.fontsize)[0]
+    @text.setter
+    def text(self, other):
+        before = self.text
+        self._text = other
+        if before != other:
+            self.update_background()
+
+    @property
+    def font(self):
+        return self._font
+
+    @font.setter
+    def font(self, other):
+        before = self.font
+        self._font = other
+        if before != other:
+            self.update_background()
+
+    @property
+    def fontsize(self):
+        return self._fontsize
+
+    @fontsize.setter
+    def fontsize(self, other):
+        before = self.fontsize
+        self._fontsize = other
+        if before != other:
+            self.update_background()
+
+    def update_background(self):
+        self.background = self.font.render(self.text, fgcolor=self.fgcolor, size=self.fontsize)[0]
 
 
 class Image(Entity):
     def __init__(self, filename=None):
         super().__init__(0, 0, hoverable=False, clickable=False)
-        self.image = None
+        self._image = None
         if filename is not None:
             self.load(filename)
+
+    @property
+    def image(self):
+        return self._image
+
+    @image.setter
+    def image(self, other):
+        self.image = other
+        self.background = self.image
 
     def load(self, filename):
         try:
@@ -431,16 +582,10 @@ class Image(Entity):
             print('Unable to load image:', filename)
             exit()
 
-    def get_base_state(self):
-        return (self.image,) + super().get_base_state()
-
-    def update_base(self):
-        self.base = self.image
-
 
 class Hub(Entity):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, width, height, **kwargs):
+        super().__init__(width, height, **kwargs)
         self.loc_center = None
         self.nodes = dict()
         self.location = None

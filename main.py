@@ -11,8 +11,10 @@ import menu
 pygame.init()
 font_loader.load()
 
-screen = gui.Screen(const.screen_width, const.screen_height)
-screen.bg_color = const.screen_bg_color
+screen = gui.Screen((const.screen_width, const.screen_height))
+bg = pygame.Surface(screen.size)
+bg.fill(const.screen_bg_color)
+screen.background = bg
 screen.style_add(default_style.default)
 
 main_hub = gui.Hub(*screen.size)
@@ -44,4 +46,6 @@ while True:
     screen.tick()
 
     fps_clock.tick(60)
+
+    # print(fps_clock.get_fps())
 
