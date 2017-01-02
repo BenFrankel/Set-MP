@@ -6,6 +6,7 @@ import time
 
 
 # TODO: Logical Entity, Concrete Entity.
+# TODO: Maybe move Image and Text into a different file. Let this be the structural layout file.
 class Rect:
     def __init__(self, x=0, y=0, w=0, h=0):
         self._x = x
@@ -237,7 +238,7 @@ class Entity(Rect):
 
         self.style = dict()
 
-        self.old_state = None
+        self.old_rect = self.copy_rect()  # None?
 
     @property
     def background(self):
@@ -263,7 +264,7 @@ class Entity(Rect):
 
     @property
     def dirty(self):
-        return self._dirty or self.old_state != self.get_state()
+        return self._dirty or self.old_rect != self
 
     @dirty.setter
     def dirty(self, other):
@@ -280,17 +281,17 @@ class Entity(Rect):
     def copy_rect(self):
         return Rect(self.x, self.y, self.w, self.h)
 
+    def rel_rect(self):
+        return Rect(0, 0, self.w, self.h)
+
     def abs_rect(self):
         if self.parent is None:
             return self.copy_rect()
         return Rect(*(x1 + x2 for x1, x2 in zip(self.parent.abs_rect().pos, self.pos)), self.w, self.h)
 
-    def get_state(self):
-        return self.copy_rect(),
-
     def show(self):
         if not self.visible:
-            self.old_state = self.get_state()
+            self.old_rect = self.copy_rect()
         self.visible = True
         self.unpause()
 
@@ -322,7 +323,7 @@ class Entity(Rect):
     def unregister(self, child):
         self.children.remove(child)
         child.parent = None
-        self.add_dirty_rect(child.copy_rect())
+        self.add_dirty_rect(child.copy_rect())  # TODO: What if it moved? Should be old rect.
 
     def unregister_all(self, children):
         for child in children:
@@ -337,7 +338,6 @@ class Entity(Rect):
             self.key_listener.key_down(key, mod)
 
     def mouse_enter(self, start, end, buttons):
-        print('ENTER >', self, end)
         for child in self.children:
             if child.hoverable and not child.paused and child.collide_point(end):
                 rel_start = (start[0] - child.x, start[1] - child.y)
@@ -345,7 +345,6 @@ class Entity(Rect):
                 child.mouse_enter(rel_start, rel_end, buttons)
 
     def mouse_exit(self, start, end, buttons):
-        print('EXIT >', self, end)
         for child in self.children:
             if child.hoverable and not child.paused and child.collide_point(start):
                 rel_start = (start[0] - child.x, start[1] - child.y)
@@ -446,27 +445,31 @@ class Entity(Rect):
         for rect in self.dirty_rects:
             self.refresh(rect)
         if self.dirty:
-            self.refresh(Rect(0, 0, self.w, self.h))
+            self.refresh(self.rel_rect())
         changed = self.dirty or bool(self.dirty_rects)
         self.dirty = False
         self.dirty_rects.clear()
-        self.old_state = self.get_state()
+        self.old_rect = self.copy_rect()
         return changed
 
     def update_background(self):
         pass
 
-    def update(self):  # Pos is absolute! collide_point is relative!
-        abs_rect = self.abs_rect()
-        print(self, abs_rect)
-        pos = tuple(x1 - x2 for x1, x2 in zip(pygame.mouse.get_pos(), abs_rect.pos))
-        if self.hovered != self.abs_rect().collide_point(pos):
+    def track(self):  # Necessary because important mouse events may be lost due to quick movement.
+        pos = pygame.mouse.get_pos()
+        if self.parent is not None:
+            pos = tuple(x1 - x2 for x1, x2 in zip(pos, self.parent.abs_rect().pos))
+        if self.hovered != self.collide_point(pos):
             rel = pygame.mouse.get_rel()
             self.hovered = not self.hovered
             if self.hovered:
                 self.mouse_enter((pos[0] - rel[0], pos[1] - rel[1]), pos, pygame.mouse.get_pressed())
             else:
                 self.mouse_exit((pos[0] - rel[0], pos[1] - rel[1]), pos, pygame.mouse.get_pressed())
+        for child in self.children:
+            child.track()
+
+    def update(self):
         for child in self.children:
             if not child.paused:
                 child.update()
@@ -475,6 +478,7 @@ class Entity(Rect):
             self.dirty = True
 
     def tick(self):
+        self.track()
         self.update()
         self.draw()
 

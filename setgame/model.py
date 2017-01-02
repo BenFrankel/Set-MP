@@ -2,6 +2,7 @@ import itertools
 import random
 
 import timer
+from ui import model
 
 
 def is_match(values):
@@ -22,12 +23,14 @@ def all_sets(cards):
     return list(filter(is_set, itertools.combinations(cards, 3)))
 
 
-class Card:
+class Card(model.Subject):
     def __init__(self, values):
+        super().__init__()
         self.values = values
         self.location = 0  # 0=draw, 1=play, 2=discard
         self.index = -1
         self.selected = False
+        self.state_attributes = 'selected', 'location', 'index'
 
     def toggle_select(self):
         self.selected = not self.selected
@@ -54,6 +57,12 @@ class Card:
     def in_discard(self):
         return self.location == 2
 
+    def __eq__(self, other):
+        try:
+            return self.values == other.values
+        except AttributeError:
+            return False
+
     def __str__(self):
         return repr(self)
 
@@ -61,14 +70,16 @@ class Card:
         return '<Card(' + str(self.values)[1:-1] + ')>'
 
 
-class Deck:
+class Deck(model.Subject):
     def __init__(self):
+        super().__init__()
         self.cards = [Card(values) for values in itertools.product((0, 1, 2), repeat=4)]
+        self.register_all(self.cards)
         random.shuffle(self.cards)
         self.draw_deck = self.cards[:]
         self.play_deck = []
         self.discard_deck = []
-        self.selected = []
+        self.state_attrs = 'draw_deck', 'play_deck', 'discard_deck'
 
     def shuffle(self):
         for card in self.cards:
@@ -109,12 +120,15 @@ class Deck:
         return '<Deck(' + str(self.cards)[1:-1] + ')>'
 
 
-class Game:
+class Game(model.Subject):
     def __init__(self):
+        super().__init__()
         self.deck = Deck()
-        self.found_sets = []
+        self.register(self.deck)
+        self.found_sets = [self.deck.cards[:3]]
         self.clock = timer.Timer()
         self.completed = False
+        self.state_attributes = 'completed', 'clock', 'found_sets'
 
     def start_game(self):
         # TESTING ENDGAME
@@ -141,7 +155,7 @@ class Game:
     def update(self):
         if not self.completed:
             selected = self.deck.get_selected()
-            if len(selected) == 3:
+            if len(selected) >= 3:
                 if is_set(selected):
                     for card in sorted(selected, key=lambda x: x.index):
                         index = card.index
@@ -158,3 +172,4 @@ class Game:
                     return
                 for _ in range(3):
                     self.deck.draw_card(random.randrange(len(self.deck.play_deck)))
+        super().update()

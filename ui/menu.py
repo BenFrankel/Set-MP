@@ -2,8 +2,8 @@ from enum import Enum
 
 import pygame
 
-from gui import Entity, Text
 import const
+from ui.layout import Entity, Text
 
 
 class WidgetState(Enum):
@@ -18,7 +18,6 @@ class Widget(Entity):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, hoverable=True, clickable=True, **kwargs)
         self._widget_state = WidgetState.IDLE
-        self.mouse_over = False
 
     @property
     def widget_state(self):
@@ -30,7 +29,7 @@ class Widget(Entity):
         self._widget_state = other
         if before != other:
             self.widget_state_change(before, other)
-            self.update_background()
+            # self.update_background()
 
     def widget_state_change(self, before, after):
         return False
@@ -89,6 +88,7 @@ class Button(Widget):
     def widget_state_change(self, before, after):
         if before == WidgetState.PRESS and after == WidgetState.HOVER:
             self.send_message(self.message)
+        self.update_background()
 
     def update_background(self):
         try:
@@ -97,8 +97,7 @@ class Button(Widget):
             super().update_background()
 
     def update(self):
-        self.label.x = (self.w - self.label.w)//2
-        self.label.y = (self.h - self.label.h)//2
+        self.label.center = self.rel_rect().center
         if self.widget_state == WidgetState.PRESS:
             self.label.x -= 1
             self.label.y += 1

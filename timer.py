@@ -164,6 +164,9 @@ class Timer:
         self.reset()
         self.start()
 
+    def __eq__(self, other):
+        return self.time == other.time and self.running == other.running
+
 
 class CountdownTimer(Timer):
     def __init__(self):
