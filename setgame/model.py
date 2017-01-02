@@ -30,7 +30,7 @@ class Card(model.Subject):
         self.location = 0  # 0=draw, 1=play, 2=discard
         self.index = -1
         self.selected = False
-        self.state_attributes = 'selected', 'location', 'index'
+        self.state_properties = 'selected', 'location', 'index'
 
     def toggle_select(self):
         self.selected = not self.selected
@@ -76,41 +76,53 @@ class Deck(model.Subject):
         self.cards = [Card(values) for values in itertools.product((0, 1, 2), repeat=4)]
         self.register_all(self.cards)
         random.shuffle(self.cards)
-        self.draw_deck = self.cards[:]
-        self.play_deck = []
-        self.discard_deck = []
-        self.state_attrs = 'draw_deck', 'play_deck', 'discard_deck'
+        self._draw_deck = self.cards[:]
+        self._play_deck = []
+        self._discard_deck = []
+        self.state_properties = 'draw_deck', 'play_deck', 'discard_deck'
+
+    @property
+    def draw_deck(self):
+        return tuple(self._draw_deck)
+
+    @property
+    def play_deck(self):
+        return tuple(self._play_deck)
+
+    @property
+    def discard_deck(self):
+        return tuple(self._discard_deck)
 
     def shuffle(self):
         for card in self.cards:
             card.shuffle()
         random.shuffle(self.cards)
-        self.draw_deck = self.cards[:]
-        self.play_deck = []
-        self.discard_deck = []
+        self._draw_deck = self.cards[:]
+        self._play_deck = []
+        self._discard_deck = []
 
     def play_shuffle(self):
-        random.shuffle(self.play_deck)
-        for i, card in enumerate(self.play_deck):
+        random.shuffle(self._play_deck)
+        for i, card in enumerate(self._play_deck):
             card.index = i
 
     def get_selected(self):
-        return list(filter(lambda x: x.selected, self.play_deck))
+        return list(filter(lambda x: x.selected, self._play_deck))
 
     def draw_card(self, index=None):
         if index is None:
-            index = len(self.play_deck)
-        for card in self.play_deck[index:]:
+            index = len(self._play_deck)
+        for card in self._play_deck[index:]:
             card.index += 1
-        next_card = self.draw_deck.pop()
+        next_card = self._draw_deck.pop()
         next_card.draw_card(index)
-        self.play_deck.insert(index, next_card)
+        self._play_deck.insert(index, next_card)
 
     def discard(self, index):
-        to_discard = self.play_deck.pop(index)
+        to_discard = self._play_deck.pop(index)
         to_discard.discard()
-        self.discard_deck.append(to_discard)
-        for card in self.play_deck[index:]:
+        self._discard_deck.append(to_discard)
+        for card in self._play_deck[index:]:
             card.index -= 1
 
     def __str__(self):
@@ -125,10 +137,15 @@ class Game(model.Subject):
         super().__init__()
         self.deck = Deck()
         self.register(self.deck)
+
         self.found_sets = [self.deck.cards[:3]]
         self.clock = timer.Timer()
         self.completed = False
-        self.state_attributes = 'completed', 'clock', 'found_sets'
+        self.state_properties = 'completed', 'time', 'found_sets'
+
+    @property
+    def time(self):
+        return self.clock.time.h, self.clock.time.m, self.clock.time.s
 
     def start_game(self):
         # TESTING ENDGAME

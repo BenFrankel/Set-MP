@@ -5,7 +5,7 @@ class Subject:
         self.parent = None
         self._children = []
 
-        self.state_attrs = tuple()
+        self.state_properties = tuple()
         self._old_state = None
 
     def add_observer(self, observer):
@@ -30,7 +30,7 @@ class Subject:
             observer.notify(self, diff)
 
     def get_state(self):
-        return State(self.state_attrs, tuple(getattr(self, attr) for attr in self.state_attrs))
+        return State(self.state_properties, tuple(getattr(self, attr) for attr in self.state_properties))
 
     def update(self):
         for child in self._children:

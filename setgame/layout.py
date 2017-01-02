@@ -155,7 +155,7 @@ class ClockEntity(layout.Entity):
         return self.parent.game.clock
 
     def notify(self, subject, diff):
-        if subject == self.parent.game and diff.clock:
+        if subject == self.parent.game and diff.time:
             self.e_text.text = '{:d}:{:02d}'.format(self.clock.time.m, self.clock.time.s)
             if self.clock.time.h >= 1:
                 self.e_text.font = font_loader.get(const.font_default)
