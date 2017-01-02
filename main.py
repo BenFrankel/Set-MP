@@ -2,16 +2,15 @@ import pygame
 
 import const
 import font_loader
-from setgame import layout
-from ui import layout, menu, default_style
+from setgame.layout import GameEntity
+from ui import *
 
 pygame.init()
 font_loader.load()
 
 screen = layout.Screen((const.screen_width, const.screen_height))
-bg = pygame.Surface(screen.size)
-bg.fill(const.screen_bg_color)
-screen.background = bg
+screen.background = pygame.Surface(screen.size)
+screen.background.fill(const.screen_bg_color)
 screen.style_add(default_style.default)
 
 main_hub = layout.Hub(*screen.size)
@@ -22,8 +21,8 @@ main_menu.add_button('Multiplayer', 'setgame mp')
 main_menu.add_button('Quit', 'exit')
 main_hub.register_center(main_menu)
 
-setgame = layout.GameEntity(*screen.size)
-main_hub.register_node('setgame sp', setgame)
+game = GameEntity(*screen.size)
+main_hub.register_node('setgame sp', game)
 
 screen.register(main_hub)
 

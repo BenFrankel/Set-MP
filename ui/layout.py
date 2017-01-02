@@ -6,7 +6,7 @@ import time
 
 
 # TODO: Logical Entity, Concrete Entity.
-# TODO: Maybe move Image and Text into a different file. Let this be the structural layout file.
+# TODO: Maybe move Image and Text into a different file. Let this be the structural gui heirarchy file.
 class Rect:
     def __init__(self, x=0, y=0, w=0, h=0):
         self._x = x
@@ -209,7 +209,7 @@ class Rect:
     __repr__ = __str__
 
 
-# ? Entity proxy that creates itself when show() and deletes itself when hide()
+# Maybe? Entity proxy that creates itself when show() and deletes itself when hide()
 class Entity(Rect):
     def __init__(self, w, h, x=0, y=0, visible=True, hoverable=True, clickable=True):
         super().__init__(x, y, w, h)
@@ -221,24 +221,23 @@ class Entity(Rect):
         self.clickable = clickable
         self.paused = False
 
-        self.hovered = False
+        self._hovered = False
 
         self._dirty = True
-        self.dirty_rects = []
+        self._dirty_rects = []
 
         self.parent = None
-        self.children = []
+        self._children = []
         self.key_listener = None
 
-        self.current_state = None
         self._background = pygame.Surface(self.size, pygame.SRCALPHA)
         self.display = pygame.Surface(self.size, pygame.SRCALPHA)
 
         self.hitbox = None
 
-        self.style = dict()
+        self._style = dict()
 
-        self.old_rect = self.copy_rect()  # None?
+        self._old_rect = self.copy_rect()  # TODO: None?
 
     @property
     def background(self):
@@ -264,7 +263,7 @@ class Entity(Rect):
 
     @property
     def dirty(self):
-        return self._dirty or self.old_rect != self
+        return self._dirty or self._old_rect != self
 
     @dirty.setter
     def dirty(self, other):
@@ -291,7 +290,7 @@ class Entity(Rect):
 
     def show(self):
         if not self.visible:
-            self.old_rect = self.copy_rect()
+            self._old_rect = self.copy_rect()
         self.visible = True
         self.unpause()
 
@@ -301,16 +300,16 @@ class Entity(Rect):
 
     def pause(self):
         self.paused = True
-        for child in self.children:
+        for child in self._children:
             child.pause()
 
     def unpause(self):
         self.paused = False
-        for child in self.children:
+        for child in self._children:
             child.unpause()
 
     def register(self, child):
-        self.children.append(child)
+        self._children.append(child)
         if child.parent is not None:
             child.parent.unregister(child)
         child.parent = self
@@ -321,7 +320,7 @@ class Entity(Rect):
             self.register(child)
 
     def unregister(self, child):
-        self.children.remove(child)
+        self._children.remove(child)
         child.parent = None
         self.add_dirty_rect(child.copy_rect())  # TODO: What if it moved? Should be old rect.
 
@@ -338,34 +337,34 @@ class Entity(Rect):
             self.key_listener.key_down(key, mod)
 
     def mouse_enter(self, start, end, buttons):
-        for child in self.children:
+        for child in self._children:
             if child.hoverable and not child.paused and child.collide_point(end):
                 rel_start = (start[0] - child.x, start[1] - child.y)
                 rel_end = (end[0] - child.x, end[1] - child.y)
                 child.mouse_enter(rel_start, rel_end, buttons)
 
     def mouse_exit(self, start, end, buttons):
-        for child in self.children:
+        for child in self._children:
             if child.hoverable and not child.paused and child.collide_point(start):
                 rel_start = (start[0] - child.x, start[1] - child.y)
                 rel_end = (end[0] - child.x, end[1] - child.y)
                 child.mouse_exit(rel_start, rel_end, buttons)
 
     def mouse_motion(self, start, end, buttons):
-        for child in self.children:
+        for child in self._children:
             if child.hoverable and not child.paused and child.collide_point(start) and child.collide_point(end):
                 rel_start = (start[0] - child.x, start[1] - child.y)
                 rel_end = (end[0] - child.x, end[1] - child.y)
                 child.mouse_motion(rel_start, rel_end, buttons)
 
     def mouse_down(self, pos, button):
-        for child in self.children:
+        for child in self._children:
             if child.clickable and not child.paused and child.collide_point(pos):
                 rel_pos = (pos[0] - child.x, pos[1] - child.y)
                 child.mouse_down(rel_pos, button)
 
     def mouse_up(self, pos, button):
-        for child in self.children:
+        for child in self._children:
             if child.clickable and not child.paused and child.collide_point(pos):
                 rel_pos = (pos[0] - child.x, pos[1] - child.y)
                 child.mouse_up(rel_pos, button)
@@ -383,45 +382,45 @@ class Entity(Rect):
         return super().collide_point(point)
 
     def style_add(self, style=None, **kwargs):
-        self.style.update(**kwargs)
+        self._style.update(**kwargs)
         if style is not None:
-            self.style.update(style)
+            self._style.update(style)
         self.update_background()
-        for child in self.children:
+        for child in self._children:
             child.style_add()  # Hack-ish ...
 
     def style_get(self, name, *args, **kwargs):
-        if name not in self.style:
+        if name not in self._style:
             if self.parent is None:
                 raise KeyError('Cannot find style to handle request: \'' + name + '\'')
             return self.parent.style_get(name, *args, **kwargs)
-        return self.style[name](*args, **kwargs)
+        return self._style[name](*args, **kwargs)
 
     def add_dirty_rect(self, rect):
-        if not self.dirty and rect not in self.dirty_rects:
-            if rect.area() + sum(r.area() for r in self.dirty_rects) > self.area():
+        if not self.dirty and rect not in self._dirty_rects:
+            if rect.area() + sum(r.area() for r in self._dirty_rects) > self.area():
                 self.dirty = True
             else:
-                self.dirty_rects.append(rect)
+                self._dirty_rects.append(rect)
                 if self.parent is not None:
                     self.parent.add_dirty_rect(Rect(self.x + rect.x, self.y + rect.y, rect.w, rect.h))
 
     def clean_dirty_rect(self, rect):
-        self.dirty_rects.remove(rect)
+        self._dirty_rects.remove(rect)
         if self.parent is not None:
             self.parent.clean_dirty_rect(Rect(self.x + rect.x, self.y + rect.y, rect.w, rect.h))
 
     def clean_dirty_rects(self):
         if self.parent is not None:
-            for rect in self.dirty_rects:
+            for rect in self._dirty_rects:
                 self.parent.clean_dirty_rect(Rect(self.x + rect.x, self.y + rect.y, rect.w, rect.h))
-        self.dirty_rects.clear()
+        self._dirty_rects.clear()
 
     def refresh(self, rect):
         # print(self, 'refresh', rect)
         self.display.fill((0, 0, 0, 0), rect.as_pygame_rect(), pygame.BLEND_RGBA_MIN)
         self.display.blit(self.background, rect.pos, rect.as_pygame_rect())
-        for child in self.children:
+        for child in self._children:
             if child.visible:
                 area = rect.intersect(child)
                 if area is not None:
@@ -430,9 +429,9 @@ class Entity(Rect):
                     self.display.blit(child.display, (child.x + area.x, child.y + area.y), area.as_pygame_rect())
 
     def draw(self):
-        for child in self.children:
+        for child in self._children:
             if child.dirty and not self.dirty:
-                old = child.old_rect
+                old = child._old_rect
                 comb = Rect(min(child.x, old.x), min(child.y, old.y))
                 comb.w = max(child.right, old.right) - comb.x
                 comb.h = max(child.bottom, old.bottom) - comb.y
@@ -442,14 +441,14 @@ class Entity(Rect):
                     self.add_dirty_rect(child.copy_rect())
                     self.add_dirty_rect(old)
             child.draw()
-        for rect in self.dirty_rects:
+        for rect in self._dirty_rects:
             self.refresh(rect)
         if self.dirty:
             self.refresh(self.rel_rect())
-        changed = self.dirty or bool(self.dirty_rects)
+        changed = self.dirty or bool(self._dirty_rects)
         self.dirty = False
-        self.dirty_rects.clear()
-        self.old_rect = self.copy_rect()
+        self._dirty_rects.clear()
+        self._old_rect = self.copy_rect()
         return changed
 
     def update_background(self):
@@ -459,22 +458,22 @@ class Entity(Rect):
         pos = pygame.mouse.get_pos()
         if self.parent is not None:
             pos = tuple(x1 - x2 for x1, x2 in zip(pos, self.parent.abs_rect().pos))
-        if self.hovered != self.collide_point(pos):
+        if self._hovered != self.collide_point(pos):
             rel = pygame.mouse.get_rel()
-            self.hovered = not self.hovered
-            if self.hovered:
+            self._hovered = not self._hovered
+            if self._hovered:
                 self.mouse_enter((pos[0] - rel[0], pos[1] - rel[1]), pos, pygame.mouse.get_pressed())
             else:
                 self.mouse_exit((pos[0] - rel[0], pos[1] - rel[1]), pos, pygame.mouse.get_pressed())
-        for child in self.children:
+        for child in self._children:
             child.track()
 
     def update(self):
-        for child in self.children:
+        for child in self._children:
             if not child.paused:
                 child.update()
-        if not all(self.children[i].z <= self.children[i+1].z for i in range(len(self.children) - 1)):
-            self.children.sort(key=lambda x: x.z)
+        if not all(self._children[i].z <= self._children[i+1].z for i in range(len(self._children) - 1)):
+            self._children.sort(key=lambda x: x.z)
             self.dirty = True
 
     def tick(self):
