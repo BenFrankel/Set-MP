@@ -6,9 +6,7 @@ from ui import model
 
 
 def is_match(values):
-    if len(values) != 3:
-        return False
-    return all(values[i] == values[i+1] for i in range(len(values) - 1)) or len(set(values)) == len(values)
+    return len(values) == 3 and sum(values) % 3 == 0
 
 
 def is_set(cards):
@@ -27,9 +25,11 @@ class Card(model.Subject):
     def __init__(self, values):
         super().__init__()
         self.values = values
+
         self.location = 0  # 0=draw, 1=play, 2=discard
         self.index = -1
         self.selected = False
+
         self.state_properties = 'selected', 'location', 'index'
 
     def toggle_select(self):
@@ -75,10 +75,13 @@ class Deck(model.Subject):
         super().__init__()
         self.cards = [Card(values) for values in itertools.product((0, 1, 2), repeat=4)]
         self.register_all(self.cards)
+
         random.shuffle(self.cards)
+
         self._draw_deck = self.cards[:]
         self._play_deck = []
         self._discard_deck = []
+
         self.state_properties = 'draw_deck', 'play_deck', 'discard_deck'
 
     @property
@@ -138,14 +141,18 @@ class Game(model.Subject):
         self.deck = Deck()
         self.register(self.deck)
 
-        self.found_sets = [self.deck.cards[:3]]
+        self._found_sets = []
         self.clock = timer.Timer()
         self.completed = False
         self.state_properties = 'completed', 'time', 'found_sets'
 
     @property
     def time(self):
-        return self.clock.time.h, self.clock.time.m, self.clock.time.s
+        return self.clock.time.s
+
+    @property
+    def found_sets(self):
+        return tuple(self._found_sets)
 
     def start_game(self):
         # TESTING ENDGAME
@@ -159,7 +166,7 @@ class Game(model.Subject):
 
     def reset_game(self):
         self.deck.shuffle()
-        self.found_sets = []
+        self._found_sets = []
         self.clock.reset()
         self.completed = False
 
@@ -169,7 +176,7 @@ class Game(model.Subject):
             card.discard()
         self.completed = True
 
-    def update(self):
+    def _update(self):
         if not self.completed:
             selected = self.deck.get_selected()
             if len(selected) >= 3:
@@ -179,7 +186,7 @@ class Game(model.Subject):
                         self.deck.discard(index)
                         if len(self.deck.play_deck) < 12 and len(self.deck.draw_deck) > 0:
                             self.deck.draw_card(index)
-                    self.found_sets.append(selected)
+                    self._found_sets.append(selected)
                 else:
                     for card in selected:
                         card.toggle_select()
@@ -189,4 +196,3 @@ class Game(model.Subject):
                     return
                 for _ in range(3):
                     self.deck.draw_card(random.randrange(len(self.deck.play_deck)))
-        super().update()
