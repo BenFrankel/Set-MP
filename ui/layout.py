@@ -1,10 +1,6 @@
 import pygame
 
-import font_loader
-import const
 
-
-# TODO: Maybe move Image and Text into a different file. Let this be the structural gui heirarchy file.
 class Rect:
     def __init__(self, x=0, y=0, w=0, h=0):
         self._x = x
@@ -539,10 +535,10 @@ class Entity(Rect):
         self.draw()
 
 
-class Screen(Entity):
+class Window(Entity):
     def __init__(self, *args, **kwargs):
-        self.screen = pygame.display.set_mode(*args, **kwargs)
-        super().__init__(*self.screen.get_size(), **kwargs)
+        self.surf = pygame.display.set_mode(*args, **kwargs)
+        super().__init__(*self.surf.get_size(), **kwargs)
 
     def handle_event(self, event):
         if event.type == pygame.KEYDOWN:
@@ -565,82 +561,8 @@ class Screen(Entity):
 
     def draw(self):
         if super().draw():
-            self.screen.blit(self.display, (0, 0))
+            self.surf.blit(self.display, (0, 0))
             pygame.display.update()
-
-
-class Text(Entity):
-    def __init__(self, text='', fontsize=1, fgcolor=None, font=None):
-        super().__init__(0, 0, hoverable=False, clickable=False)
-        self._text = text
-        self._font = font
-        self._fontsize = fontsize
-        if font is None:
-            self._font = font_loader.get(const.font_default)
-        self.fgcolor = fgcolor
-        if fgcolor is None:
-            self.fgcolor = (0, 0, 0)
-        self.update_background()
-
-    @property
-    def text(self):
-        return self._text
-
-    @text.setter
-    def text(self, other):
-        before = self.text
-        self._text = other
-        if before != other:
-            self.update_background()
-
-    @property
-    def font(self):
-        return self._font
-
-    @font.setter
-    def font(self, other):
-        before = self.font
-        self._font = other
-        if before != other:
-            self.update_background()
-
-    @property
-    def fontsize(self):
-        return self._fontsize
-
-    @fontsize.setter
-    def fontsize(self, other):
-        before = self.fontsize
-        self._fontsize = other
-        if before != other:
-            self.update_background()
-
-    def update_background(self):
-        self.background = self.font.render(self.text, fgcolor=self.fgcolor, size=self.fontsize)[0]
-
-
-class Image(Entity):
-    def __init__(self, filename=None):
-        super().__init__(0, 0, hoverable=False, clickable=False)
-        self._image = None
-        if filename is not None:
-            self.load(filename)
-
-    @property
-    def image(self):
-        return self._image
-
-    @image.setter
-    def image(self, other):
-        self.image = other
-        self.background = self.image
-
-    def load(self, filename):
-        try:
-            self.image = pygame.image.load(filename).convert_alpha()
-        except FileNotFoundError:
-            print('Unable to load image:', filename)
-            exit()
 
 
 class Hub(Entity):

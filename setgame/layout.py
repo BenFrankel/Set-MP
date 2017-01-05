@@ -1,13 +1,10 @@
 import const
-import font_loader
 from setgame import default_style
 from setgame.model import Game
-from ui import layout
-from ui.menu import WidgetState, Widget, Button
+from ui import layout, menu, text
 
 
-# TODO: Card cannot detect
-class CardEntity(Widget):
+class CardEntity(menu.Widget):
     def __init__(self, card, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.card = card
@@ -18,7 +15,7 @@ class CardEntity(Widget):
             self.update_background()
 
     def widget_state_change(self, before, after):
-        if before == WidgetState.HOVER and after == WidgetState.PRESS:
+        if before == menu.WidgetState.HOVER and after == menu.WidgetState.PRESS:
             self.card.toggle_select()
 
     def update_background(self):
@@ -147,7 +144,7 @@ class ClockEntity(layout.Entity):
         game.add_observer(self)
 
         text_h = int(self.h * 0.9)
-        self.e_text = layout.Text(fontsize=text_h, font=font_loader.get(const.font_digital_clock))
+        self.e_text = text.Text(fontsize=text_h, font=text.get_font(const.font_digital_clock))
         self.register(self.e_text)
 
     @property
@@ -158,7 +155,7 @@ class ClockEntity(layout.Entity):
         if subject == self.parent.game and diff.time:
             self.e_text.text = '{:d}:{:02d}'.format(self.clock.time.m, self.clock.time.s)
             if self.clock.time.h >= 1:
-                self.e_text.font = font_loader.get(const.font_default)
+                self.e_text.font = text.get_font(const.font_default)
                 self.e_text.text = 'Zzz..'
             self.e_text.center = self.rel_rect().center
 
@@ -208,12 +205,12 @@ class GameEntity(layout.Entity):
         button_w = 100
         button_h = 50
         button_y = (self.e_play_deck.bottom + self.h - button_h) // 2
-        self.restart_button = Button('Restart', 'restart', button_w, button_h)
+        self.restart_button = menu.Button('Restart', 'restart', button_w, button_h)
         self.restart_button.x = (self.w + 2*button_w) // 2
         self.restart_button.y = button_y
         self.register(self.restart_button)
 
-        self.exit_button = Button('Exit', 'exit', button_w, button_h)
+        self.exit_button = menu.Button('Exit', 'exit', button_w, button_h)
         self.exit_button.x = (self.w - 4*button_w)//2
         self.exit_button.y = button_y
         self.register(self.exit_button)

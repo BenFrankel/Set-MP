@@ -1,30 +1,30 @@
 import pygame
 
 import const
-import font_loader
 from setgame.layout import GameEntity
 from ui import *
 
 pygame.init()
-font_loader.load()
+text.load_fonts()
+image.load_images()
 
-screen = layout.Screen((const.screen_width, const.screen_height))
-screen.background = pygame.Surface(screen.size)
-screen.background.fill(const.screen_bg_color)
-screen.style_add(default_style.default)
+main_window = layout.Window((const.window_w, const.window_h))
+main_window.background = pygame.Surface(main_window.size)
+main_window.background.fill(const.window_bgcolor)
+main_window.style_add(default_style.default)
 
-main_hub = layout.Hub(*screen.size)
+main_hub = layout.Hub(*main_window.size)
 
-main_menu = menu.Menu(*screen.size)
+main_menu = menu.Menu(*main_window.size)
 main_menu.add_button('Single Player', 'setgame sp')
 main_menu.add_button('Multiplayer', 'setgame mp')
 main_menu.add_button('Quit', 'exit')
 main_hub.register_center(main_menu)
 
-game = GameEntity(*screen.size)
+game = GameEntity(*main_window.size)
 main_hub.register_node('setgame sp', game)
 
-screen.register(main_hub)
+main_window.register(main_hub)
 
 fps_clock = pygame.time.Clock()
 
@@ -37,11 +37,10 @@ while True:
             if event.key == pygame.K_ESCAPE:
                 exit()
 
-        screen.handle_event(event)
+        main_window.handle_event(event)
 
-    screen.tick()
+    main_window.tick()
 
     fps_clock.tick(60)
 
     print(fps_clock.get_fps())
-

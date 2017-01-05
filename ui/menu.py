@@ -3,7 +3,7 @@ from enum import Enum
 import pygame
 
 import const
-from ui.layout import Entity, Text
+from ui import layout, text
 
 
 class WidgetState(Enum):
@@ -14,7 +14,7 @@ class WidgetState(Enum):
     PULL = 4
 
 
-class Widget(Entity):
+class Widget(layout.Entity):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, hoverable=True, clickable=True, **kwargs)
         self._widget_state = WidgetState.IDLE
@@ -82,7 +82,7 @@ class Button(Widget):
         self.name = name
         self.message = message
 
-        self.label = Text(name, fontsize=max(self.h//3, 14), fgcolor=(255, 255, 255))
+        self.label = text.Text(name, fontsize=max(self.h//3, 14), fgcolor=(255, 255, 255))
         self.register(self.label)
 
     def widget_state_change(self, before, after):
@@ -104,7 +104,7 @@ class Button(Widget):
         super().update()
 
 
-class Menu(Entity):
+class Menu(layout.Entity):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.buttons = list()
