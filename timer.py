@@ -81,6 +81,21 @@ class Time:
         if s != 0:
             self.s += s
 
+    def in_d(self):
+        return self.in_h() / 24
+
+    def in_h(self):
+        return self.in_m() / 60
+
+    def in_m(self):
+        return self.in_s() / 60
+
+    def in_s(self):
+        return self.in_ms() / 1000
+
+    def in_ms(self):
+        return self.ms + 1000 * (self.s + 60 * (self.m + 60 * (self.h + 24 * self.d)))
+
     def __add__(self, other):
         return Time(self.d + other.d, self.h + other.h, self.m + other.m, self.s + other.s, self.ms + other.ms)
 

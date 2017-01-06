@@ -29,11 +29,15 @@ class Card(model.Subject):
         self.location = 0  # 0=draw, 1=play, 2=discard
         self.index = -1
         self.selected = False
+        self.face_up = True
 
-        self.state_properties = 'selected', 'location', 'index'
+        self.state_properties = 'selected', 'face_up', 'location', 'index'
 
     def toggle_select(self):
         self.selected = not self.selected
+
+    def flip(self):
+        self.face_up = not self.face_up
 
     def draw_card(self, index):
         self.location = 1
@@ -141,58 +145,133 @@ class Game(model.Subject):
         self.deck = Deck()
         self.register(self.deck)
 
-        self._found_sets = []
+        # Timer.
         self.clock = timer.Timer()
+
+        self.user = Player('Username')
+        self.players = [self.user]
+
+        # State flags.
+        self.started = False
+        self.paused = False
         self.completed = False
-        self.state_properties = 'completed', 'time', 'found_sets'
+
+        self.found_sets = []
+
+        self.state_properties = 'started', 'completed', 'time'
 
     @property
     def time(self):
         return self.clock.time.s
 
-    @property
-    def found_sets(self):
-        return tuple(self._found_sets)
-
-    def start_game(self):
+    def start(self):
         # TESTING ENDGAME
         # for i in range(69):
         #     self.deck.draw_card()
         #     self.deck.discard(0)
+        self.started = True
         for _ in range(12):
             self.deck.draw_card()
-        self.clock.restart()
-        self.completed = False
+        self.clock.start()
 
-    def reset_game(self):
-        self.deck.shuffle()
-        self._found_sets = []
-        self.clock.reset()
-        self.completed = False
+    def pause(self):
+        if not self.paused:
+            self.paused = True
+            self.clock.pause()
+            for card in self.deck.cards:
+                card.flip()
 
-    def end_game(self):
+    def unpause(self):
+        if self.paused:
+            self.paused = False
+            self.clock.unpause()
+            for card in self.deck.cards:
+                card.flip()
+
+    def end(self):
+        self.completed = True
         self.clock.pause()
+        summary = GameSummary(self)
         for card in self.deck.play_deck:
             card.discard()
-        self.completed = True
+        for player in self.players:
+            player.end_game(summary)
+
+    def reset(self):
+        self.started = False
+        self.completed = False
+        self.found_sets = []
+        self.deck.shuffle()
+        self.clock.reset()
+
+    def restart(self):
+        self.reset()
+        self.start()
+
+    def add_player(self, player):
+        self.players.append(player)
+
+    def find_set(self, player, cards):
+        for card in sorted(cards, key=lambda x: x.index):
+            index = card.index
+            self.deck.discard(index)
+            if len(self.deck.play_deck) < 12 and len(self.deck.draw_deck) > 0:
+                self.deck.draw_card(index)
+        self.found_sets.append(FoundSet(player, cards))
 
     def update(self):
         if not self.completed:
             selected = self.deck.get_selected()
             if len(selected) >= 3:
                 if is_set(selected):
-                    for card in sorted(selected, key=lambda x: x.index):
-                        index = card.index
-                        self.deck.discard(index)
-                        if len(self.deck.play_deck) < 12 and len(self.deck.draw_deck) > 0:
-                            self.deck.draw_card(index)
-                    self._found_sets.append(selected)
+                    self.find_set(self.user, selected)
                 else:
                     for card in selected:
                         card.toggle_select()
             while not has_set(self.deck.play_deck):
                 if len(self.deck.draw_deck) < 3:
-                    self.end_game()
+                    self.end()
                     return
                 for _ in range(3):
                     self.deck.draw_card(random.randrange(len(self.deck.play_deck)))
+
+
+class FoundSet:
+    def __init__(self, player, cards):
+        self.player = player
+        self.cards = cards
+
+
+class PlayerSummary:
+    def __init__(self, player, found_sets):
+        self.name = player.name
+        self.found_sets = found_sets
+        self.won = False
+
+
+class GameSummary:
+    def __init__(self, game):
+        self.time = game.clock.time
+        self.found_sets = game.found_sets
+        self.players = []
+        for player in game.players:
+            found_sets = list(filter(lambda y: y.player is player, self.found_sets))
+            self.players.append(PlayerSummary(player, found_sets))
+        self.players.sort(key=lambda x: len(x.found_sets))
+        self.winner = self.players[0]
+        self.winner.won = True
+
+    def __str__(self):
+        return '{} wins! - {} sets in {} seconds.'.format(self.winner.name, len(self.winner.found_sets), self.time.in_s())
+
+
+class Player:
+    def __init__(self, name):
+        self.name = name
+        self.won_games = []
+
+    def end_game(self, summary):
+        if summary.winner.name == self.name:
+            self.won_games.append(summary)
+            print(summary)
+

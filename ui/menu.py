@@ -77,11 +77,21 @@ class Widget(layout.Entity):
 class Button(Widget):
     def __init__(self, name, message, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.name = name
+        self._name = name
         self.message = message
 
         self.label = text.Text(name, fontsize=max(self.h//3, 14), fgcolor=(255, 255, 255))
         self.register(self.label)
+
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, other):
+        if self._name != other:
+            self._name = other
+            self.label.text = other
 
     def widget_state_change(self, before, after):
         if before == WidgetState.PRESS and after == WidgetState.HOVER:

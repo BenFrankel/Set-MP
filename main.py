@@ -1,7 +1,7 @@
 import pygame
 
 import const
-from setgame.layout import GameEntity
+from setgame.layout import GameHandler
 from ui import *
 
 pygame.init()
@@ -21,7 +21,7 @@ main_menu.add_button('Single Player', 'setgame sp')
 main_menu.add_button('Multiplayer', 'setgame mp')
 main_menu.add_button('Quit', 'exit')
 
-game = GameEntity(*main_hub.size)
+game = GameHandler(*main_hub.size)
 main_hub.register_node('setgame sp', game)
 
 fps_clock = pygame.time.Clock()

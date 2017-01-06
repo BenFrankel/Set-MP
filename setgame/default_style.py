@@ -25,7 +25,10 @@ def style(play_deck_bg, clock_bg, card_front, card_back, sym_shape, sym_texture,
 
         return surf
 
-    def card(size, number, color, texture, shape, border=True, selected=False):
+    def card(size, number, color, texture, shape, border=True, face_up=True, selected=False):
+        if not face_up:
+            return card_back(size, border)
+
         card_image = card_front(size, border, selected)
         rect = card_image.get_rect()
 
