@@ -25,7 +25,7 @@ class Subject:
         self._children.remove(child)
         child.parent = None
 
-    def notify_all(self, diff):
+    def _notify_all(self, diff):
         for observer in self._observers:
             observer.notify(self, diff)
 
@@ -41,7 +41,7 @@ class Subject:
             child._update()
         new_state = self.get_state()
         if self._old_state != new_state:
-            self.notify_all(StateChange(self._old_state, new_state))
+            self._notify_all(StateChange(self._old_state, new_state))
             self._old_state = new_state
 
     def tick(self):
