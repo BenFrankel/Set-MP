@@ -218,14 +218,26 @@ class Entity(Rect):
         self._visible = visible
         self._hoverable = hoverable
         self._clickable = clickable
-        self._paused = False
-
-        # Transparency.
         self._opacity = opacity
-        self.colorkey = None
-
-        # Input tracking flags.
+        self._paused = False
         self._hovered = False
+
+        # Surfaces.
+        if self.is_transparent:
+            self._colorkey = None
+            self._background = None
+            self._display = None
+        elif self.is_translucent:
+            self._colorkey = (0, 0, 0, 0)
+            self._background = pygame.Surface(self.size, pygame.SRCALPHA)
+            self._display = pygame.Surface(self.size, pygame.SRCALPHA)
+        else:  # self.is_opaque
+            self._colorkey = (0, 0, 0)
+            self._background = pygame.Surface(self.size)
+            self._display = pygame.Surface(self.size)
+        if self._colorkey is not None:
+            self._background.set_colorkey(self.colorkey)
+            self._display.set_colorkey(self.colorkey)
 
         # Dirty Rectangle memory.
         self._dirty = False
@@ -234,17 +246,6 @@ class Entity(Rect):
 
         self._old_rect = None
         self._old_visible = None
-
-        # Surfaces.
-        if self.is_transparent:
-            self._background = None
-            self._display = None
-        elif self.is_translucent:
-            self._background = pygame.Surface(self.size, pygame.SRCALPHA)
-            self._display = pygame.Surface(self.size, pygame.SRCALPHA)
-        else:  # self.is_opaque
-            self._background = pygame.Surface(self.size)
-            self._display = pygame.Surface(self.size)
 
         # Style.
         self._style = dict()
@@ -295,6 +296,17 @@ class Entity(Rect):
         self._dirty = other
 
     @property
+    def colorkey(self):
+        return self._colorkey
+
+    @colorkey.setter
+    def colorkey(self, other):
+        if self._colorkey != other:
+            self._colorkey = other
+            self._background.set_colorkey(other)
+            self._display.set_colorkey(other)
+
+    @property
     def background(self):
         return self._background
 
@@ -305,6 +317,9 @@ class Entity(Rect):
                 self._display = pygame.Surface(other.get_size(), pygame.SRCALPHA)
             elif self.is_opaque:
                 self._display = pygame.Surface(other.get_size())
+        if self._colorkey is not None:
+            self._background.set_colorkey(self.colorkey)
+            self._display.set_colorkey(self.colorkey)
         self._background = other
         self.size = other.get_size()
         self.dirty = True
@@ -313,9 +328,8 @@ class Entity(Rect):
         pass
 
     def resize(self, size):
-        before = self.size
-        self.size = size
-        if before != size:
+        if self.size != size:
+            self.size = size
             self.update_background()
 
     def style_add(self, style=None, **kwargs):
@@ -466,7 +480,7 @@ class Entity(Rect):
 
     def _refresh(self, rect):
         children = self._children[:]
-        self._display.fill((0, 0, 0, 0), rect.as_pygame_rect())
+        self._display.fill(self.colorkey, rect.as_pygame_rect())
         self._display.blit(self._background, rect.pos, rect.as_pygame_rect())
         for child in children:
             if child._visible:
@@ -588,10 +602,11 @@ class Hub(Entity):
         self.register(child)
 
     def enter_node(self, child):
-        if self.location is not None:
-            self.location.hide()
-        self.location = child
-        self.location.show()
+        if self.location is not child:
+            if self.location is not None:
+                self.location.hide()
+            self.location = child
+            self.location.show()
 
     def handle_message(self, sender, message):
         if message == 'exit' and self.location is not self.loc_center:

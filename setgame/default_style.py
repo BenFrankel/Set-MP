@@ -4,7 +4,7 @@ import pygame.gfxdraw
 import const
 
 
-def style(deck_bg, clock_bg, card_front, card_back, sym_shape, sym_texture, sym_color):
+def style(play_deck_bg, clock_bg, card_front, card_back, sym_shape, sym_texture, sym_color):
     def symbol(size, color, texture, shape):
         black = (0, 0, 0)
 
@@ -25,8 +25,8 @@ def style(deck_bg, clock_bg, card_front, card_back, sym_shape, sym_texture, sym_
 
         return surf
 
-    def card(size, number, color, texture, shape, selected=False):
-        card_image = card_front(size, selected)
+    def card(size, number, color, texture, shape, border=True, selected=False):
+        card_image = card_front(size, border, selected)
         rect = card_image.get_rect()
 
         number += 1
@@ -55,12 +55,11 @@ def style(deck_bg, clock_bg, card_front, card_back, sym_shape, sym_texture, sym_
         surf = pygame.Surface(size, pygame.SRCALPHA)
         rect = surf.get_rect()
 
-        card_x = 2
-        card_y = rect.h - card_h - 2
-        pygame.draw.rect(surf, (255, 255, 255, 60), (card_x - 2, card_y + 2, card_w, card_h))
-        pygame.draw.rect(surf, (0, 0, 0), (card_x - 2, card_y + 2, card_w, card_h), 1)
+        card_x = 0
+        card_y = rect.h - card_h
+        back_img = card_back((card_w, card_h))
         for _ in range(layers):
-            surf.blit(card_back((card_w, card_h)), (card_x, card_y))
+            surf.blit(back_img, (card_x, card_y))
             card_x += 2
             card_y -= 2
 
@@ -74,12 +73,11 @@ def style(deck_bg, clock_bg, card_front, card_back, sym_shape, sym_texture, sym_
         surf = pygame.Surface(size, pygame.SRCALPHA)
         rect = surf.get_rect()
 
-        card_x = rect.w - card_w - 2
-        card_y = rect.h - card_h - 2
-        pygame.draw.rect(surf, (255, 255, 255, 60), (card_x + 2, card_y + 2, card_w, card_h))
-        pygame.draw.rect(surf, (0, 0, 0), (card_x + 2, card_y + 2, card_w, card_h), 1)
+        card_x = rect.w - card_w - 1
+        card_y = rect.h - card_h - 1
+        front_img = card_front((card_w, card_h))
         for _ in range(layers):
-            surf.blit(card_front((card_w, card_h)), (card_x, card_y))
+            surf.blit(front_img, (card_x, card_y))
             card_x -= 2
             card_y -= 2
         if top_card is not None:
@@ -90,12 +88,12 @@ def style(deck_bg, clock_bg, card_front, card_back, sym_shape, sym_texture, sym_
     return {const.style_card: card,
             const.style_card_back: card_back,
             const.style_clock_bg: clock_bg,
-            const.style_deck_bg: deck_bg,
+            const.style_deck_bg: play_deck_bg,
             const.style_discard_deck: discard_deck,
             const.style_draw_deck: draw_deck}
 
 
-def def_deck_bg(size):
+def def_play_deck_bg(size):
     surf = pygame.Surface(size, pygame.SRCALPHA)
     surf.fill((0, 0, 0, 15))
 
@@ -114,27 +112,35 @@ def def_clock_bg(size):
     return surf
 
 
-def def_card_front(size, selected=False):
-    surf = pygame.Surface(size, pygame.SRCALPHA)
+def def_card_front(size, border=True, selected=False):
+    surf = pygame.Surface(size)
     rect = surf.get_rect()
 
     surf.fill((245, 245, 245))
-    pygame.draw.rect(surf, (1, 1, 1), rect, 1)
 
     if selected:
-        shade = pygame.Surface(size, pygame.SRCALPHA)
-        shade.fill((0, 0, 0, 40))
+        shade = pygame.Surface(size)
+        shade.fill((0, 0, 0))
+        shade.set_alpha(40)
         surf.blit(shade, (0, 0))
+
+    if border:
+        border = pygame.Surface(size, pygame.SRCALPHA)
+        pygame.draw.rect(border, (0, 0, 0, 100), rect, 1)
+        surf.blit(border, (0, 0))
 
     return surf
 
 
-def def_card_back(size):
-    surf = pygame.Surface(size, pygame.SRCALPHA)
+def def_card_back(size, border=True):
+    surf = pygame.Surface(size)
     rect = surf.get_rect()
 
     surf.fill((120, 20, 120))
-    pygame.draw.rect(surf, (1, 1, 1), rect, 1)
+    if border:
+        border = pygame.Surface(size, pygame.SRCALPHA)
+        pygame.draw.rect(border, (0, 0, 0, 100), rect, 1)
+        surf.blit(border, (0, 0))
 
     return surf
 
@@ -199,7 +205,7 @@ def def_sym_shape(size, shape):
     return outline, mask
 
 
-default = style(def_deck_bg,
+default = style(def_play_deck_bg,
                 def_clock_bg,
                 def_card_front,
                 def_card_back,

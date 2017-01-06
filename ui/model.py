@@ -29,7 +29,7 @@ class Subject:
         for observer in self._observers:
             observer.notify(self, diff)
 
-    def get_state(self):
+    def _get_state(self):
         return State(self.state_properties, tuple(getattr(self, attr) for attr in self.state_properties))
 
     def update(self):
@@ -39,10 +39,11 @@ class Subject:
         self.update()
         for child in self._children:
             child._update()
-        new_state = self.get_state()
+        new_state = self._get_state()
         if self._old_state != new_state:
-            self._notify_all(StateChange(self._old_state, new_state))
+            before = self._old_state
             self._old_state = new_state
+            self._notify_all(StateChange(before, new_state))
 
     def tick(self):
         self._update()

@@ -25,9 +25,9 @@ class Widget(layout.Entity):
 
     @widget_state.setter
     def widget_state(self, other):
-        before = self._widget_state
-        self._widget_state = other
-        if before != other:
+        if self._widget_state != other:
+            before = self._widget_state
+            self._widget_state = other
             self.widget_state_change(before, other)
 
     def widget_state_change(self, before, after):

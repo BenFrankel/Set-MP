@@ -6,7 +6,7 @@ from ui import layout, menu, text
 
 class CardEntity(menu.Widget):
     def __init__(self, card, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super().__init__(opacity=2, *args, **kwargs)
         self.card = card
         self.card.add_observer(self)
 
@@ -20,7 +20,10 @@ class CardEntity(menu.Widget):
 
     def update_background(self):
         try:
-            self.background = self.style_get(const.style_card, self.size, *self.card.values, self.card.selected)
+            self.background = self.style_get(const.style_card,
+                                             self.size,
+                                             *self.card.values,
+                                             selected=self.card.selected)
         except KeyError:
             super().update_background()
 
@@ -85,7 +88,7 @@ class PlayDeckEntity(layout.Entity):
 
 class DrawDeckEntity(layout.Entity):
     def __init__(self, deck, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super().__init__(opacity=2, *args, **kwargs)
         deck.add_observer(self)
 
     @property
@@ -109,7 +112,7 @@ class DrawDeckEntity(layout.Entity):
 
 class DiscardDeckEntity(layout.Entity):
     def __init__(self, deck, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super().__init__(opacity=2, *args, **kwargs)
         deck.add_observer(self)
         self._top_card = None
 

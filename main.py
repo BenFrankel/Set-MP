@@ -39,6 +39,6 @@ while True:
 
     main_window.tick()
 
-    fps_clock.tick(60)
+    fps_clock.tick()
 
     # print(fps_clock.get_fps())

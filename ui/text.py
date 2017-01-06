@@ -50,9 +50,8 @@ class Text(layout.Entity):
 
     @text.setter
     def text(self, other):
-        before = self.text
-        self._text = other
-        if before != other:
+        if self._text != other:
+            self._text = other
             self.update_background()
 
     @property
@@ -61,9 +60,8 @@ class Text(layout.Entity):
 
     @font.setter
     def font(self, other):
-        before = self.font
-        self._font = other
-        if before != other:
+        if self._font != other:
+            self._font = other
             self.update_background()
 
     @property
@@ -72,9 +70,8 @@ class Text(layout.Entity):
 
     @fontsize.setter
     def fontsize(self, other):
-        before = self.fontsize
-        self._fontsize = other
-        if before != other:
+        if self._fontsize != other:
+            self._fontsize = other
             self.update_background()
 
     def update_background(self):
