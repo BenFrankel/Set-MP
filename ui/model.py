@@ -32,17 +32,20 @@ class Subject:
     def get_state(self):
         return State(self.state_properties, tuple(getattr(self, attr) for attr in self.state_properties))
 
-    def _update(self):
+    def update(self):
         pass
 
-    def update(self):
-        self._update()
+    def _update(self):
+        self.update()
         for child in self._children:
-            child.update()
+            child._update()
         new_state = self.get_state()
         if self._old_state != new_state:
             self.notify_all(StateChange(self._old_state, new_state))
             self._old_state = new_state
+
+    def tick(self):
+        self._update()
 
 
 class State:

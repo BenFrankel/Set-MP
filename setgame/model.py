@@ -176,7 +176,7 @@ class Game(model.Subject):
             card.discard()
         self.completed = True
 
-    def _update(self):
+    def update(self):
         if not self.completed:
             selected = self.deck.get_selected()
             if len(selected) >= 3:

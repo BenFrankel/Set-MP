@@ -9,22 +9,20 @@ text.load_fonts()
 image.load_images()
 
 main_window = layout.Window((const.window_w, const.window_h))
-main_window.background = pygame.Surface(main_window.size)
 main_window.background.fill(const.window_bgcolor)
 main_window.style_add(default_style.default)
 
 main_hub = layout.Hub(*main_window.size)
+main_window.register(main_hub)
 
-main_menu = menu.Menu(*main_window.size)
+main_menu = menu.Menu(*main_hub.size)
+main_hub.register_center(main_menu)
 main_menu.add_button('Single Player', 'setgame sp')
 main_menu.add_button('Multiplayer', 'setgame mp')
 main_menu.add_button('Quit', 'exit')
-main_hub.register_center(main_menu)
 
-game = GameEntity(*main_window.size)
+game = GameEntity(*main_hub.size)
 main_hub.register_node('setgame sp', game)
-
-main_window.register(main_hub)
 
 fps_clock = pygame.time.Clock()
 
@@ -43,4 +41,4 @@ while True:
 
     fps_clock.tick(60)
 
-    print(fps_clock.get_fps())
+    # print(fps_clock.get_fps())

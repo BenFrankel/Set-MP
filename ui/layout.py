@@ -203,9 +203,8 @@ class Rect:
     __repr__ = __str__
 
 
-# Maybe? Entity proxy that creates itself when show() and deletes itself when hide()
 class Entity(Rect):
-    def __init__(self, w, h, x=0, y=0, visible=True, hoverable=True, clickable=True, transparent=False):
+    def __init__(self, w, h, x=0, y=0, visible=True, hoverable=True, clickable=True, opacity=1):
         super().__init__(x, y, w, h)
 
         # Heirarchical references.
@@ -215,12 +214,15 @@ class Entity(Rect):
 
         self.z = 0
 
-        # Behavioral flags.
-        self._transparent = transparent
+        # General flags.
         self._visible = visible
         self._hoverable = hoverable
         self._clickable = clickable
         self._paused = False
+
+        # Transparency.
+        self._opacity = opacity
+        self.colorkey = None
 
         # Input tracking flags.
         self._hovered = False
@@ -234,11 +236,15 @@ class Entity(Rect):
         self._old_visible = None
 
         # Surfaces.
-        self._background = None
-        self._display = None
-        if not self._transparent:
+        if self.is_transparent:
+            self._background = None
+            self._display = None
+        elif self.is_translucent:
             self._background = pygame.Surface(self.size, pygame.SRCALPHA)
             self._display = pygame.Surface(self.size, pygame.SRCALPHA)
+        else:  # self.is_opaque
+            self._background = pygame.Surface(self.size)
+            self._display = pygame.Surface(self.size)
 
         # Style.
         self._style = dict()
@@ -248,36 +254,32 @@ class Entity(Rect):
         return self.parent is None
 
     @property
-    def visible(self):
-        return self._visible and (self.is_root or self.parent.visible)
-
-    @visible.setter
-    def visible(self, other):
-        self._visible = other
+    def is_visible(self):
+        return self._visible and (self.is_root or self.parent.is_visible)
 
     @property
-    def hoverable(self):
-        return self._hoverable and (self.is_root or self.parent.hoverable)
-
-    @hoverable.setter
-    def hoverable(self, other):
-        self._hoverable = other
+    def can_hover(self):
+        return self._hoverable and (self.is_root or self.parent.can_hover)
 
     @property
-    def clickable(self):
-        return self._clickable and (self.is_root or self.parent.clickable)
-
-    @clickable.setter
-    def clickable(self, other):
-        self._clickable = other
+    def can_click(self):
+        return self._clickable and (self.is_root or self.parent.can_click)
 
     @property
-    def paused(self):
-        return self._paused or not self.is_root and self.parent.paused
+    def is_paused(self):
+        return self._paused or not self.is_root and self.parent.is_paused
 
-    @paused.setter
-    def paused(self, other):
-        self._paused = other
+    @property
+    def is_transparent(self):
+        return self._opacity == 0
+
+    @property
+    def is_translucent(self):
+        return self._opacity == 1
+
+    @property
+    def is_opaque(self):
+        return self._opacity == 2
 
     @property
     def dirty(self):
@@ -289,29 +291,20 @@ class Entity(Rect):
     def dirty(self, other):
         if other and not self.is_root:
             for rect in self._dirty_rects:
-                self.clean_dirty_rect(rect)
+                self._clean_dirty_rects(rect)
         self._dirty = other
 
     @property
-    def display(self):
-        if self._transparent:
-            if not self.is_root:
-                return self.parent.display
-            raise Exception  # TODO
-        return self._display
-
-    @property
     def background(self):
-        if self._transparent:
-            if not self.is_root:
-                return self.parent.background
-            raise Exception  # TODO
         return self._background
 
     @background.setter  # Perhaps find a better solution than this to resizing?
     def background(self, other):
         if self.size != other.get_size():
-            self._display = pygame.Surface(other.get_size(), pygame.SRCALPHA)
+            if self.is_translucent:
+                self._display = pygame.Surface(other.get_size(), pygame.SRCALPHA)
+            elif self.is_opaque:
+                self._display = pygame.Surface(other.get_size())
         self._background = other
         self.size = other.get_size()
         self.dirty = True
@@ -353,24 +346,24 @@ class Entity(Rect):
         return Rect(abs_pos[0] - self.pos[0], abs_pos[1] - self.pos[1], self.w, self.h)
 
     def show(self):
-        self.visible = True
+        self._visible = True
         self.unpause()
 
     def hide(self):
-        self.visible = False
+        self._visible = False
         self.pause()
 
     def pause(self):
-        self.paused = True
+        self._paused = True
 
     def unpause(self):
-        self.paused = False
+        self._paused = False
 
     def register(self, child):
         if not child.is_root:
             child.parent.unregister(child)
         for rect in child._dirty_rects:
-            child.clean_dirty_rect(rect)
+            child._clean_dirty_rects(rect)
         child.parent = self
         child.dirty = child._visible
         child.style_add()  # Hack-ish ...
@@ -384,7 +377,7 @@ class Entity(Rect):
         self._children.remove(child)
         child.parent = None
         if child._old_visible and child._old_rect is not None:
-            self.add_dirty_rect(child._old_rect)
+            self._add_dirty_rect(child._old_rect)
 
     def unregister_all(self, children):
         for child in children:
@@ -438,7 +431,7 @@ class Entity(Rect):
         if not self.is_root:
             self.parent.handle_message(self, message)
 
-    def add_dirty_rect(self, rect):
+    def _add_dirty_rect(self, rect):
         if not self.dirty and rect not in self._dirty_rects:
             area = rect.area()
             if area + self._dirty_area > self.area():
@@ -447,15 +440,15 @@ class Entity(Rect):
             else:
                 self._dirty_rects.append(rect)
                 if not self.is_root:
-                    self.parent.add_dirty_rect(Rect(self.x + rect.x, self.y + rect.y, rect.w, rect.h))
+                    self.parent._add_dirty_rect(Rect(self.x + rect.x, self.y + rect.y, rect.w, rect.h))
 
-    def clean_dirty_rect(self, rect):
+    def _clean_dirty_rects(self, rect):
         self._dirty_rects.remove(rect)
         self._dirty_area -= rect.area()
         if not self.is_root:
-            self.parent.clean_dirty_rect(Rect(self.x + rect.x, self.y + rect.y, rect.w, rect.h))
+            self.parent._clean_dirty_rects(Rect(self.x + rect.x, self.y + rect.y, rect.w, rect.h))
 
-    def transition_rects(self):
+    def _transition_rects(self):
         if self._old_visible and self._visible:
             old = self._old_rect
             comb = Rect(min(self.x, old.x), min(self.y, old.y))
@@ -471,35 +464,35 @@ class Entity(Rect):
             return [self.copy_rect()]
         return []
 
-    def refresh(self, rect):
+    def _refresh(self, rect):
         children = self._children[:]
-        self.display.fill((0, 0, 0, 0), rect.as_pygame_rect())
-        self.display.blit(self.background, rect.pos, rect.as_pygame_rect())
+        self._display.fill((0, 0, 0, 0), rect.as_pygame_rect())
+        self._display.blit(self._background, rect.pos, rect.as_pygame_rect())
         for child in children:
             if child._visible:
-                if child._transparent:
+                if child.is_transparent:
                     children.extend(child._children)
                 else:
                     area = rect.intersect(child)
                     if area is not None:
                         area.x -= child.x
                         area.y -= child.y
-                        self.display.blit(child.display, (child.x + area.x, child.y + area.y), area.as_pygame_rect())
+                        self._display.blit(child._display, (child.x + area.x, child.y + area.y), area.as_pygame_rect())
 
-    def draw(self):
+    def _draw(self):
         if self._visible:
             for child in self._children:
-                if not child._transparent and child.dirty and not self.dirty:
-                    for rect in child.transition_rects():
-                        self.add_dirty_rect(rect)
+                if not child.is_transparent and child.dirty and not self.dirty:
+                    for rect in child._transition_rects():
+                        self._add_dirty_rect(rect)
                 if child._visible or child._old_visible:
-                    child.draw()
-            if not self._transparent:
+                    child._draw()
+            if not self.is_transparent:
                 if self.dirty:
-                    self.refresh(self.rel_rect())
+                    self._refresh(self.rel_rect())
                 else:
                     for rect in self._dirty_rects:
-                        self.refresh(rect)
+                        self._refresh(rect)
         changed = self.dirty or bool(self._dirty_rects)
         self.dirty = False
         self._dirty_rects = []
@@ -507,7 +500,11 @@ class Entity(Rect):
         self._old_visible = self._visible
         return changed
 
-    def track(self):  # Necessary because important mouse events may be lost due to quick movement.
+    def track(self):
+        pass
+
+    def _track(self):  # Necessary because important mouse events may be lost due to quick movement.
+        self.track()
         pos = pygame.mouse.get_pos()
         if not self.is_root:
             pos = tuple(x1 - x2 for x1, x2 in zip(pos, self.parent.abs_rect().pos))
@@ -519,20 +516,25 @@ class Entity(Rect):
             else:
                 self.mouse_exit((pos[0] - rel[0], pos[1] - rel[1]), pos, pygame.mouse.get_pressed())
         for child in self._children:
-            child.track()
+            if not child._paused:
+                child._track()
 
     def update(self):
+        pass
+
+    def _update(self):
+        self.update()
         for child in self._children:
             if not child._paused:
-                child.update()
+                child._update()
         if not all(self._children[i].z <= self._children[i+1].z for i in range(len(self._children) - 1)):
             self._children.sort(key=lambda x: x.z)
             self.dirty = True
 
     def tick(self):
-        self.track()
-        self.update()
-        self.draw()
+        self._track()
+        self._update()
+        self._draw()
 
 
 class Window(Entity):
@@ -559,15 +561,15 @@ class Window(Entity):
         else:
             super().handle_message(sender, message)
 
-    def draw(self):
-        if super().draw():
-            self.surf.blit(self.display, (0, 0))
+    def _draw(self):
+        if super()._draw():
+            self.surf.blit(self._display, (0, 0))
             pygame.display.update()
 
 
 class Hub(Entity):
     def __init__(self, width, height, **kwargs):
-        super().__init__(width, height, transparent=True, **kwargs)
+        super().__init__(width, height, opacity=0, **kwargs)
         self.loc_center = None
         self.nodes = dict()
         self.location = None

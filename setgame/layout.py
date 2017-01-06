@@ -71,9 +71,9 @@ class PlayDeckEntity(layout.Entity):
                     e_card.y = half_gap_h + (self.h // rows) * (e_card.card.index // cols)
                     if e_card.card.selected:
                         e_card.y -= half_gap_h // 2
-                    if not e_card.visible:
+                    if not e_card.is_visible:
                         e_card.show()
-                elif e_card.visible:
+                elif e_card.is_visible:
                     e_card.hide()
 
     def update_background(self):
@@ -232,8 +232,7 @@ class GameEntity(layout.Entity):
         super().unpause()
 
     def update(self):
-        self.game.update()
-        super().update()
+        self.game.tick()
 
     def handle_message(self, sender, message):
         if message == 'restart':

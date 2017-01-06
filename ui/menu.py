@@ -29,10 +29,9 @@ class Widget(layout.Entity):
         self._widget_state = other
         if before != other:
             self.widget_state_change(before, other)
-            # self.update_background()
 
     def widget_state_change(self, before, after):
-        return False
+        pass
 
     def pause(self):
         self.widget_state = WidgetState.IDLE
@@ -70,10 +69,9 @@ class Widget(layout.Entity):
                 self.widget_state = WidgetState.IDLE
         super().mouse_up(pos, button)
 
-    def update(self):
+    def track(self):
         if self.widget_state == WidgetState.PULL and not pygame.mouse.get_pressed()[0]:
             self.widget_state = WidgetState.IDLE
-        super().update()
 
 
 class Button(Widget):
@@ -107,7 +105,7 @@ class Button(Widget):
 class Menu(layout.Entity):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.buttons = list()
+        self.buttons = []
 
     def add_button(self, name, message):
         # TODO: Something smarter than this...
@@ -124,4 +122,3 @@ class Menu(layout.Entity):
             button.x = 10
             button.y = button_y + 200
             button_y += button.h + 10
-        super().update()
