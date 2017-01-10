@@ -1,17 +1,15 @@
 import pygame
 import pygame.gfxdraw
 
-import const
 
-
-def style(play_deck_bg, clock_bg, card_front, card_back, sym_shape, sym_texture, sym_color):
+def style(play_deck_bg, clock_bg, card_front, card_back, symbol_shape, symbol_texture, symbol_color):
     def symbol(size, color, texture, shape):
         black = (0, 0, 0)
 
         s_color = pygame.Surface(size, pygame.SRCALPHA)
-        s_color.fill(sym_color(color))
-        s_texture = sym_texture(size, texture)
-        s_outline, s_mask = sym_shape(size, shape)
+        s_color.fill(symbol_color(color))
+        s_texture = symbol_texture(size, texture)
+        s_outline, s_mask = symbol_shape(size, shape)
 
         surf = pygame.Surface(size, pygame.SRCALPHA)
 
@@ -88,15 +86,14 @@ def style(play_deck_bg, clock_bg, card_front, card_back, sym_shape, sym_texture,
 
         return surf
 
-    return {const.style_card: card,
-            const.style_card_back: card_back,
-            const.style_clock_bg: clock_bg,
-            const.style_deck_bg: play_deck_bg,
-            const.style_discard_deck: discard_deck,
-            const.style_draw_deck: draw_deck}
+    return {'setgame card': card,
+            'setgame clock bg': clock_bg,
+            'setgame play deck bg': play_deck_bg,
+            'setgame discard deck': discard_deck,
+            'setgame draw deck': draw_deck}
 
 
-def def_play_deck_bg(size):
+def default_play_deck_bg(size):
     surf = pygame.Surface(size, pygame.SRCALPHA)
     surf.fill((0, 0, 0, 15))
 
@@ -106,7 +103,7 @@ def def_play_deck_bg(size):
     return surf
 
 
-def def_clock_bg(size):
+def default_clock_bg(size):
     surf = pygame.Surface(size, pygame.SRCALPHA)
     surf.fill((150, 150, 150, 150))
 
@@ -115,7 +112,7 @@ def def_clock_bg(size):
     return surf
 
 
-def def_card_front(size, border=True, selected=False):
+def default_card_front(size, border=True, selected=False):
     surf = pygame.Surface(size)
     rect = surf.get_rect()
 
@@ -135,7 +132,7 @@ def def_card_front(size, border=True, selected=False):
     return surf
 
 
-def def_card_back(size, border=True):
+def default_card_back(size, border=True):
     surf = pygame.Surface(size)
     rect = surf.get_rect()
 
@@ -148,11 +145,11 @@ def def_card_back(size, border=True):
     return surf
 
 
-def def_sym_color(color):
+def default_symbol_color(color):
     return [(240, 0, 0), (0, 180, 0), (100, 0, 160)][color]
 
 
-def def_sym_texture(size, texture):
+def default_symbol_texture(size, texture):
     white = (255, 255, 255)
 
     mask = pygame.Surface(size)
@@ -174,7 +171,7 @@ def def_sym_texture(size, texture):
     return mask
 
 
-def def_sym_shape(size, shape):
+def default_symbol_shape(size, shape):
     white = (255, 255, 255)
 
     mask = pygame.Surface(size)
@@ -208,10 +205,14 @@ def def_sym_shape(size, shape):
     return outline, mask
 
 
-default = style(def_play_deck_bg,
-                def_clock_bg,
-                def_card_front,
-                def_card_back,
-                def_sym_shape,
-                def_sym_texture,
-                def_sym_color)
+default_style = style(default_play_deck_bg,
+                      default_clock_bg,
+                      default_card_front,
+                      default_card_back,
+                      default_symbol_shape,
+                      default_symbol_texture,
+                      default_symbol_color)
+
+default_options = []
+
+default_controls = []

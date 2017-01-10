@@ -14,6 +14,9 @@ dir_info = os.path.join(dir_resources, 'inf')
 dir_font = os.path.join(dir_data, 'font')
 dir_image = os.path.join(dir_data, 'img')
 
+dir_user_data = 'users'
+dir_friend_data = os.path.join(dir_user_data, 'friends')
+
 
 # RESOURCES TODO: Find resources automatically from a data file.
 # - FONTS
@@ -26,17 +29,3 @@ font_default = ubuntu_mono[0]
 
 # - IMAGES
 images = tuple()
-
-
-# STYLE NAMES
-# - SETGAME
-style_card = 'card'
-style_card_back = 'card back'
-style_draw_deck = 'draw deck'
-style_discard_deck = 'discard deck'
-style_deck_bg = 'deck background'
-style_clock_bg = 'clock background'
-
-# - GENERAL
-style_button = 'button'
-style_default_font = 'default font'

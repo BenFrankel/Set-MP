@@ -16,7 +16,7 @@ class WidgetState(Enum):
 
 class Widget(layout.Entity):
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, hoverable=True, clickable=True, **kwargs)
+        super().__init__(*args, hoverable=True, clickable=True, typable=False, **kwargs)
         self._widget_state = WidgetState.IDLE
 
     @property
@@ -38,31 +38,33 @@ class Widget(layout.Entity):
         super().pause()
 
     def mouse_enter(self, start, end, buttons):
-        if self.widget_state == WidgetState.IDLE:
-            if buttons[0]:
-                self.widget_state = WidgetState.PUSH
-            else:
-                self.widget_state = WidgetState.HOVER
-        elif self.widget_state == WidgetState.PULL:
-            self.widget_state = WidgetState.PRESS
+        if self._visible:
+            if self.widget_state == WidgetState.IDLE:
+                if buttons[0]:
+                    self.widget_state = WidgetState.PUSH
+                else:
+                    self.widget_state = WidgetState.HOVER
+            elif self.widget_state == WidgetState.PULL:
+                self.widget_state = WidgetState.PRESS
         super().mouse_enter(start, end, buttons)
 
     def mouse_exit(self, start, end, buttons):
-        if self.widget_state == WidgetState.HOVER or self.widget_state == WidgetState.PUSH:
-            self.widget_state = WidgetState.IDLE
-        elif self.widget_state == WidgetState.PRESS:
-            self.widget_state = WidgetState.PULL
+        if self._visible:
+            if self.widget_state == WidgetState.HOVER or self.widget_state == WidgetState.PUSH:
+                self.widget_state = WidgetState.IDLE
+            elif self.widget_state == WidgetState.PRESS:
+                self.widget_state = WidgetState.PULL
         super().mouse_exit(start, end, buttons)
 
     def mouse_down(self, pos, button):
-        if button == 1:
+        if button == 1 and self._visible:
             if self.widget_state != WidgetState.HOVER:
                 self.widget_state = WidgetState.HOVER
             self.widget_state = WidgetState.PRESS
         super().mouse_down(pos, button)
 
     def mouse_up(self, pos, button):
-        if button == 1:
+        if button == 1 and self._visible:
             if self.widget_state == WidgetState.PRESS or self.widget_state == WidgetState.PUSH:
                 self.widget_state = WidgetState.HOVER
             elif self.widget_state == WidgetState.PULL:
@@ -70,7 +72,7 @@ class Widget(layout.Entity):
         super().mouse_up(pos, button)
 
     def track(self):
-        if self.widget_state == WidgetState.PULL and not pygame.mouse.get_pressed()[0]:
+        if self._visible and self.widget_state == WidgetState.PULL and not pygame.mouse.get_pressed()[0]:
             self.widget_state = WidgetState.IDLE
 
 

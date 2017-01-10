@@ -204,7 +204,7 @@ class Rect:
 
 
 class Entity(Rect):
-    def __init__(self, w, h, x=0, y=0, visible=True, hoverable=True, clickable=True, opacity=1):
+    def __init__(self, w, h, x=0, y=0, visible=True, hoverable=True, clickable=True, typable=False, opacity=1):
         super().__init__(x, y, w, h)
 
         # Heirarchical references.
@@ -218,6 +218,7 @@ class Entity(Rect):
         self._visible = visible
         self._hoverable = hoverable
         self._clickable = clickable
+        self._typable = typable
         self._opacity = opacity
         self._paused = False
         self._hovered = False
@@ -267,6 +268,10 @@ class Entity(Rect):
         return self._clickable and (self.is_root or self.parent.can_click)
 
     @property
+    def can_type(self):
+        return self._typable and (self.is_root or self.parent.can_type)
+
+    @property
     def is_paused(self):
         return self._paused or not self.is_root and self.parent.is_paused
 
@@ -281,6 +286,10 @@ class Entity(Rect):
     @property
     def is_opaque(self):
         return self._opacity == 2
+
+    @property
+    def is_alive(self):
+        return self._visible and not self._paused
 
     @property
     def dirty(self):
@@ -398,43 +407,45 @@ class Entity(Rect):
             self.unregister(child)
 
     def key_down(self, unicode, key, mod):
-        if self.key_listener is not None:
+        if self.key_listener is not None and self.key_listener.is_alive:
             self.key_listener.key_down(unicode, key, mod)
 
     def key_up(self, key, mod):
-        if self.key_listener is not None:
-            self.key_listener.key_down(key, mod)
+        if self.key_listener is not None and self.key_listener.is_alive:
+            self.key_listener.key_up(key, mod)
 
     def mouse_enter(self, start, end, buttons):
         for child in self._children:
-            if child._hoverable and not child._paused and child.collide_point(end):
+            if child._hoverable and child.is_alive and child.collide_point(end):
                 rel_start = (start[0] - child.x, start[1] - child.y)
                 rel_end = (end[0] - child.x, end[1] - child.y)
                 child.mouse_enter(rel_start, rel_end, buttons)
 
     def mouse_exit(self, start, end, buttons):
         for child in self._children:
-            if child._hoverable and not child._paused and child.collide_point(start):
+            if child._hoverable and child.is_alive and child.collide_point(start):
                 rel_start = (start[0] - child.x, start[1] - child.y)
                 rel_end = (end[0] - child.x, end[1] - child.y)
                 child.mouse_exit(rel_start, rel_end, buttons)
 
     def mouse_motion(self, start, end, buttons):
         for child in self._children:
-            if child._hoverable and not child._paused and child.collide_point(start) and child.collide_point(end):
+            if child._hoverable and child.is_alive and child.collide_point(start) and child.collide_point(end):
                 rel_start = (start[0] - child.x, start[1] - child.y)
                 rel_end = (end[0] - child.x, end[1] - child.y)
                 child.mouse_motion(rel_start, rel_end, buttons)
 
     def mouse_down(self, pos, button):
-        for child in self._children:
-            if child._clickable and not child._paused and child.collide_point(pos):
+        for child in self._children[::-1]:
+            if child._clickable and child.is_alive and child.collide_point(pos):
                 rel_pos = (pos[0] - child.x, pos[1] - child.y)
+                if child._typable:
+                    self.key_listener = child
                 child.mouse_down(rel_pos, button)
 
     def mouse_up(self, pos, button):
         for child in self._children:
-            if child._clickable and not child._paused and child.collide_point(pos):
+            if child._clickable and child.is_alive and child.collide_point(pos):
                 rel_pos = (pos[0] - child.x, pos[1] - child.y)
                 child.mouse_up(rel_pos, button)
 
@@ -530,7 +541,7 @@ class Entity(Rect):
             else:
                 self.mouse_exit((pos[0] - rel[0], pos[1] - rel[1]), pos, pygame.mouse.get_pressed())
         for child in self._children:
-            if not child._paused:
+            if child.is_alive:
                 child._track()
 
     def update(self):
@@ -539,7 +550,7 @@ class Entity(Rect):
     def _update(self):
         self.update()
         for child in self._children:
-            if not child._paused:
+            if child.is_alive:
                 child._update()
         if not all(self._children[i].z <= self._children[i+1].z for i in range(len(self._children) - 1)):
             self._children.sort(key=lambda x: x.z)
@@ -554,7 +565,7 @@ class Entity(Rect):
 class Window(Entity):
     def __init__(self, *args, **kwargs):
         self.surf = pygame.display.set_mode(*args, **kwargs)
-        super().__init__(*self.surf.get_size(), **kwargs)
+        super().__init__(*self.surf.get_size(), typable=True, **kwargs)
 
     def handle_event(self, event):
         if event.type == pygame.KEYDOWN:
@@ -583,7 +594,7 @@ class Window(Entity):
 
 class Hub(Entity):
     def __init__(self, width, height, **kwargs):
-        super().__init__(width, height, opacity=0, **kwargs)
+        super().__init__(width, height, typable=True, opacity=0, **kwargs)
         self.loc_center = None
         self.nodes = dict()
         self.location = None
@@ -606,7 +617,11 @@ class Hub(Entity):
             if self.location is not None:
                 self.location.hide()
             self.location = child
-            self.location.show()
+            child.show()
+            if child._typable:
+                self.key_listener = child
+            else:
+                self.key_listener = None
 
     def handle_message(self, sender, message):
         if message == 'exit' and self.location is not self.loc_center:

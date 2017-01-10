@@ -175,14 +175,14 @@ class Game(model.Subject):
         self.clock.start()
 
     def pause(self):
-        if not self.paused:
+        if not self.paused and not self.completed:
             self.paused = True
             self.clock.pause()
             for card in self.deck.cards:
                 card.flip()
 
     def unpause(self):
-        if self.paused:
+        if self.paused and not self.completed:
             self.paused = False
             self.clock.unpause()
             for card in self.deck.cards:

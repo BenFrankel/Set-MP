@@ -1,5 +1,7 @@
+import pygame
+
 import const
-from setgame import default_style
+from setgame import config
 from setgame.model import Game
 from ui import layout, menu, text
 
@@ -7,24 +9,24 @@ from ui import layout, menu, text
 class CardEntity(menu.Widget):
     def __init__(self, card, *args, **kwargs):
         super().__init__(opacity=2, *args, **kwargs)
-        self.card = card
-        self.card.add_observer(self)
+        self.card_model = card
+        self.card_model.add_observer(self)
 
     def notify(self, subject, diff):
-        if subject == self.card and (diff.selected or diff.face_up):
+        if subject == self.card_model and (diff.selected or diff.face_up):
             self.update_background()
 
     def widget_state_change(self, before, after):
-        if before == menu.WidgetState.HOVER and after == menu.WidgetState.PRESS and self.card.face_up:
-            self.card.toggle_select()
+        if before == menu.WidgetState.HOVER and after == menu.WidgetState.PRESS and self.card_model.face_up:
+            self.card_model.toggle_select()
 
     def update_background(self):
         try:
-            self.background = self.style_get(const.style_card,
+            self.background = self.style_get('setgame card',
                                              self.size,
-                                             *self.card.values,
-                                             face_up=self.card.face_up,
-                                             selected=self.card.selected)
+                                             *self.card_model.values,
+                                             face_up=self.card_model.face_up,
+                                             selected=self.card_model.selected)
         except KeyError:
             super().update_background()
 
@@ -32,19 +34,19 @@ class CardEntity(menu.Widget):
 class PlayDeckEntity(layout.Entity):
     def __init__(self, deck, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.deck = deck
+        self.deck_model = deck
         deck.add_observer(self)
         for card in deck.cards:
             card.add_observer(self)
 
-        e_card_w = self.w // 5
-        e_card_h = self.h // 3.5
-        self.e_cards = [CardEntity(card, e_card_w, e_card_h) for card in deck.cards]
-        self.register_all(self.e_cards)
+        card_w = self.w // 5
+        card_h = self.h // 3.5
+        self.cards = [CardEntity(card, card_w, card_h) for card in deck.cards]
+        self.register_all(self.cards)
 
     @property
     def dim(self):
-        num_in_play = len(self.deck.play_deck)
+        num_in_play = len(self.deck_model.play_deck)
         rows = 3
         cols = max((num_in_play + 2) // rows, 1)
         if num_in_play <= 6:
@@ -60,26 +62,26 @@ class PlayDeckEntity(layout.Entity):
         return card_w, card_h
 
     def notify(self, subject, diff):
-        if subject == self.deck and diff.play_deck or subject in self.deck.play_deck and diff.selected:
+        if subject == self.deck_model and diff.play_deck or subject in self.deck_model.play_deck and diff.selected:
             rows, cols = self.dim
             card_w, card_h = self.card_size
             half_gap_w = (self.w - (self.w // cols) * (cols - 1) - card_w) // 2
             half_gap_h = (self.h - (self.h // rows) * (rows - 1) - card_h) // 2
-            for e_card in self.e_cards:
-                if e_card.card.in_play():
-                    e_card.resize((card_w, card_h))
-                    e_card.x = half_gap_w + (self.w // cols) * (e_card.card.index % cols)
-                    e_card.y = half_gap_h + (self.h // rows) * (e_card.card.index // cols)
-                    if e_card.card.selected:
-                        e_card.y -= half_gap_h // 2
-                    if not e_card.is_visible:
-                        e_card.show()
-                elif e_card.is_visible:
-                    e_card.hide()
+            for card in self.cards:
+                if card.card_model.in_play():
+                    card.resize((card_w, card_h))
+                    card.x = half_gap_w + (self.w // cols) * (card.card_model.index % cols)
+                    card.y = half_gap_h + (self.h // rows) * (card.card_model.index // cols)
+                    if card.card_model.selected:
+                        card.y -= half_gap_h // 2
+                    if not card.is_alive:
+                        card.show()
+                elif card.is_alive:
+                    card.hide()
 
     def update_background(self):
         try:
-            self.background = self.style_get(const.style_deck_bg, self.size)
+            self.background = self.style_get('setgame play deck bg', self.size)
         except KeyError:
             super().update_background()
 
@@ -100,7 +102,7 @@ class DrawDeckEntity(layout.Entity):
 
     def update_background(self):
         try:
-            self.background = self.style_get(const.style_draw_deck, self.size, self.num_cards)
+            self.background = self.style_get('setgame draw deck', self.size, self.num_cards)
         except KeyError:
             super().update_background()
 
@@ -129,7 +131,7 @@ class DiscardDeckEntity(layout.Entity):
 
     def update_background(self):
         try:
-            self.background = self.style_get(const.style_discard_deck, self.size, self.num_cards, self.top_card)
+            self.background = self.style_get('setgame discard deck', self.size, self.num_cards, self.top_card)
         except KeyError:
             super().update_background()
 
@@ -163,7 +165,7 @@ class ClockEntity(layout.Entity):
 
     def update_background(self):
         try:
-            self.background = self.style_get(const.style_clock_bg, self.size)
+            self.background = self.style_get('setgame clock bg', self.size)
         except KeyError:
             super().update_background()
 
@@ -174,7 +176,7 @@ class SPGameEntity(layout.Entity):
         self.model = Game()
         self.model.add_observer(self)
 
-        self.style_add(default_style.default)
+        self.style_add(config.default_style)
 
         deck_w = int(self.w * 0.6)
         deck_h = int(self.h * 0.7)
@@ -224,7 +226,7 @@ class SPGameEntity(layout.Entity):
 
 class GameHandler(layout.Entity):
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, opacity=0, **kwargs)
+        super().__init__(*args, typable=True, opacity=0, **kwargs)
         self.game = SPGameEntity(*args)
         self.register(self.game)
 
@@ -266,10 +268,14 @@ class GameHandler(layout.Entity):
         else:
             super().handle_message(sender, message)
 
+    def key_down(self, unicode, key, mod):
+        if key == pygame.K_p:
+            self.pause_button.send_message(self.pause_button.message)
+        elif key == pygame.K_r:
+            self.restart_button.send_message(self.restart_button.message)
+        super().key_down(unicode, key, mod)
+
     def show(self):
         if not self.game.model.started:
             self.game.model.start()
         super().show()
-
-    # def update(self):
-    #     if
