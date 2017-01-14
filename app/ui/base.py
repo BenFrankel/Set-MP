@@ -342,9 +342,7 @@ class Entity(Rect):
             self.update_background()
 
     def style_add(self, style=None, **kwargs):
-        self._style.update(**kwargs)
-        if style is not None:
-            self._style.update(style)
+        self._style.update(style, **kwargs)
         self.update_background()
         for child in self._children:
             child.style_add()  # Hack-ish ...
@@ -560,73 +558,3 @@ class Entity(Rect):
         self._track()
         self._update()
         self._draw()
-
-
-class Window(Entity):
-    def __init__(self, *args, **kwargs):
-        self.surf = pygame.display.set_mode(*args, **kwargs)
-        super().__init__(*self.surf.get_size(), typable=True, **kwargs)
-
-    def handle_event(self, event):
-        if event.type == pygame.KEYDOWN:
-            self.key_down(event.unicode, event.key, event.mod)
-        elif event.type == pygame.KEYUP:
-            self.key_up(event.key, event.mod)
-        elif event.type == pygame.MOUSEMOTION:
-            start = (event.pos[0] - event.rel[0], event.pos[1] - event.rel[1])
-            self.mouse_motion(start, event.pos, event.buttons)
-        elif event.type == pygame.MOUSEBUTTONDOWN:
-            self.mouse_down(event.pos, event.button)
-        elif event.type == pygame.MOUSEBUTTONUP:
-            self.mouse_up(event.pos, event.button)
-
-    def handle_message(self, sender, message):
-        if message == 'exit':
-            exit()
-        else:
-            super().handle_message(sender, message)
-
-    def _draw(self):
-        if super()._draw():
-            self.surf.blit(self._display, (0, 0))
-            pygame.display.update()
-
-
-class Hub(Entity):
-    def __init__(self, width, height, **kwargs):
-        super().__init__(width, height, typable=True, opacity=0, **kwargs)
-        self.loc_center = None
-        self.nodes = dict()
-        self.location = None
-
-    def register_node(self, name, child):
-        if name in self.nodes:
-            raise KeyError('A node with the name ' + name + ' is already registered.')
-        self.nodes[name] = child
-        child.hide()
-        self.register(child)
-
-    def register_center(self, child):
-        self.loc_center = child
-        if self.location is None:
-            self.enter_node(child)
-        self.register(child)
-
-    def enter_node(self, child):
-        if self.location is not child:
-            if self.location is not None:
-                self.location.hide()
-            self.location = child
-            child.show()
-            if child._typable:
-                self.key_listener = child
-            else:
-                self.key_listener = None
-
-    def handle_message(self, sender, message):
-        if message == 'exit' and self.location is not self.loc_center:
-            self.enter_node(self.loc_center)
-        elif message in self.nodes:
-            self.enter_node(self.nodes[message])
-        else:
-            super().handle_message(sender, message)

@@ -2,8 +2,8 @@ import os.path
 
 import pygame.freetype
 
-from . import layout
 import const
+from . import base
 
 
 pygame.freetype.init()
@@ -31,7 +31,7 @@ def get_font(name):
     return font_dict[name]
 
 
-class Text(layout.Entity):
+class Text(base.Entity):
     def __init__(self, text='', fontsize=1, fgcolor=None, font=None):
         super().__init__(0, 0, hoverable=False, clickable=False)
         self._text = text

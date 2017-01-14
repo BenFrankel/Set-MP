@@ -1,9 +1,9 @@
 import pygame
 
 import const
+from app.ui import base, menu, text
 from setgame import config
 from setgame.model import Game
-from ui import layout, menu, text
 
 
 class CardEntity(menu.Widget):
@@ -22,7 +22,7 @@ class CardEntity(menu.Widget):
 
     def update_background(self):
         try:
-            self.background = self.style_get('setgame card',
+            self.background = self.style_get('setgame-card',
                                              self.size,
                                              *self.card_model.values,
                                              face_up=self.card_model.face_up,
@@ -31,7 +31,7 @@ class CardEntity(menu.Widget):
             super().update_background()
 
 
-class PlayDeckEntity(layout.Entity):
+class PlayDeckEntity(base.Entity):
     def __init__(self, deck, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.deck_model = deck
@@ -81,12 +81,12 @@ class PlayDeckEntity(layout.Entity):
 
     def update_background(self):
         try:
-            self.background = self.style_get('setgame play deck bg', self.size)
+            self.background = self.style_get('setgame-play-deck-bg', self.size)
         except KeyError:
             super().update_background()
 
 
-class DrawDeckEntity(layout.Entity):
+class DrawDeckEntity(base.Entity):
     def __init__(self, deck, *args, **kwargs):
         super().__init__(opacity=2, *args, **kwargs)
         self.deck = deck
@@ -102,12 +102,12 @@ class DrawDeckEntity(layout.Entity):
 
     def update_background(self):
         try:
-            self.background = self.style_get('setgame draw deck', self.size, self.num_cards)
+            self.background = self.style_get('setgame-draw-deck', self.size, self.num_cards)
         except KeyError:
             super().update_background()
 
 
-class DiscardDeckEntity(layout.Entity):
+class DiscardDeckEntity(base.Entity):
     def __init__(self, deck, *args, **kwargs):
         super().__init__(opacity=2, *args, **kwargs)
         self.deck = deck
@@ -131,12 +131,12 @@ class DiscardDeckEntity(layout.Entity):
 
     def update_background(self):
         try:
-            self.background = self.style_get('setgame discard deck', self.size, self.num_cards, self.top_card)
+            self.background = self.style_get('setgame-discard-deck', self.size, self.num_cards, self.top_card)
         except KeyError:
             super().update_background()
 
 
-class ClockEntity(layout.Entity):
+class ClockEntity(base.Entity):
     def __init__(self, game_model, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.game_model = game_model
@@ -165,12 +165,12 @@ class ClockEntity(layout.Entity):
 
     def update_background(self):
         try:
-            self.background = self.style_get('setgame clock bg', self.size)
+            self.background = self.style_get('setgame-clock-bg', self.size)
         except KeyError:
             super().update_background()
 
 
-class SPGameEntity(layout.Entity):
+class SPGameEntity(base.Entity):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.model = Game()
@@ -224,7 +224,7 @@ class SPGameEntity(layout.Entity):
         self.model.tick()
 
 
-class GameHandler(layout.Entity):
+class GameHandler(base.Entity):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, typable=True, opacity=0, **kwargs)
         self.game = SPGameEntity(*args)

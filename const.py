@@ -1,20 +1,16 @@
 import os.path
 
 
-# WINDOW CONFIGURATION
-window_w = 1000
-window_h = 800
-window_bgcolor = (0, 100, 160)
-
-
 # FILE SYSTEM
+# - Resources
 dir_resources = 'resources'
 dir_data = os.path.join(dir_resources, 'data')
-dir_info = os.path.join(dir_resources, 'inf')
+dir_info = os.path.join(dir_resources, 'info')
 dir_font = os.path.join(dir_data, 'font')
 dir_image = os.path.join(dir_data, 'img')
 
-dir_user_data = 'users'
+# - User Data
+dir_user_data = 'userdata'
 dir_friend_data = os.path.join(dir_user_data, 'friends')
 
 

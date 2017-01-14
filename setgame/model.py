@@ -2,7 +2,7 @@ import itertools
 import random
 
 import timer
-from ui import model
+from app import model
 
 
 def is_match(values):

@@ -86,11 +86,11 @@ def style(play_deck_bg, clock_bg, card_front, card_back, symbol_shape, symbol_te
 
         return surf
 
-    return {'setgame card': card,
-            'setgame clock bg': clock_bg,
-            'setgame play deck bg': play_deck_bg,
-            'setgame discard deck': discard_deck,
-            'setgame draw deck': draw_deck}
+    return {'setgame-card': card,
+            'setgame-clock-bg': clock_bg,
+            'setgame-play-deck-bg': play_deck_bg,
+            'setgame-discard-deck': discard_deck,
+            'setgame-draw-deck': draw_deck}
 
 
 def default_play_deck_bg(size):
@@ -213,6 +213,6 @@ default_style = style(default_play_deck_bg,
                       default_symbol_texture,
                       default_symbol_color)
 
-default_options = []
+default_options = dict()
 
-default_controls = []
+default_controls = dict()

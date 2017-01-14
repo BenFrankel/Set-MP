@@ -3,7 +3,7 @@ import os.path
 import pygame
 
 import const
-from . import layout
+from . import base
 
 
 image_dict = dict()
@@ -28,7 +28,7 @@ def get_font(name):
     return image_dict[name]
 
 
-class Image(layout.Entity):
+class Image(base.Entity):
     def __init__(self, filename=None):
         super().__init__(0, 0, hoverable=False, clickable=False)
         self._image = None
