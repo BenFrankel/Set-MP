@@ -209,7 +209,7 @@ class Entity(Rect):
 
         # Configuration identifier
         self.name = None
-        self.category = None
+        self._category = None
 
         # Hierarchical references
         self._app = None
@@ -253,8 +253,7 @@ class Entity(Rect):
         self._old_rect = None
         self._old_visible = None
 
-        # Style
-        self._style = dict()
+        self._loaded = False
 
     @property
     def is_root(self):
@@ -305,6 +304,16 @@ class Entity(Rect):
         self._app = other
         for child in self._children:
             child.app = other
+
+    @property
+    def category(self):
+        return self._category
+
+    @category.setter
+    def category(self, other):
+        self._category = other
+        for child in self._children:
+            child.category = other
 
     @property
     def dirty(self):
@@ -396,9 +405,10 @@ class Entity(Rect):
             child.parent.unregister(child)
         for rect in child._dirty_rects:
             child._clean_dirty_rects(rect)
-        child.parent = self
         child.app = self._app
-        child.category = self.category
+        child.parent = self
+        if child.category is None and self.category is not None:
+            child.category = self.category
         child.dirty = child._visible
         self._children.append(child)
 
@@ -408,8 +418,8 @@ class Entity(Rect):
 
     def unregister(self, child):
         self._children.remove(child)
-        child.parent = None
         child.app = None
+        child.parent = None
         child.category = None
         if child._old_visible and child._old_rect is not None:
             self._add_dirty_rect(child._old_rect)
@@ -518,6 +528,9 @@ class Entity(Rect):
 
     def _draw(self):
         if self._visible:
+            if not self._loaded:
+                self._loaded = True
+                self.update_background()
             for child in self._children:
                 if not child.is_transparent and child.dirty and not self.dirty:
                     for rect in child._transition_rects():

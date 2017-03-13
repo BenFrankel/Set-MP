@@ -21,13 +21,10 @@ class CardEntity(ui.Widget):
             self.card_model.toggle_select()
 
     def update_background(self):
-        try:
-            self.background = self.style_get('card')(self.size,
-                                                     *self.card_model.values,
-                                                     face_up=self.card_model.face_up,
-                                                     selected=self.card_model.selected)
-        except KeyError:
-            super().update_background()
+        self.background = self.style_get('card')(self.size,
+                                                 *self.card_model.values,
+                                                 face_up=self.card_model.face_up,
+                                                 selected=self.card_model.selected)
 
 
 class PlayDeckEntity(ui.Entity):
@@ -81,10 +78,7 @@ class PlayDeckEntity(ui.Entity):
                     card.hide()
 
     def update_background(self):
-        try:
-            self.background = self.style_get('bg')(self.size)
-        except KeyError:
-            super().update_background()
+        self.background = self.style_get('bg')(self.size)
 
 
 class DrawDeckEntity(ui.Entity):
@@ -104,10 +98,7 @@ class DrawDeckEntity(ui.Entity):
             self.update_background()
 
     def update_background(self):
-        try:
-            self.background = self.style_get('draw-deck')(self.size, self.num_cards)
-        except KeyError:
-            super().update_background()
+        self.background = self.style_get('draw-deck')(self.size, self.num_cards)
 
 
 class DiscardDeckEntity(ui.Entity):
@@ -135,10 +126,7 @@ class DiscardDeckEntity(ui.Entity):
             self.update_background()
 
     def update_background(self):
-        try:
-            self.background = self.style_get('discard-deck')(self.size, self.num_cards, self.top_card)
-        except KeyError:
-            super().update_background()
+        self.background = self.style_get('discard-deck')(self.size, self.num_cards, self.top_card)
 
 
 class ClockEntity(ui.Entity):
@@ -154,9 +142,6 @@ class ClockEntity(ui.Entity):
         self.e_text = ui.Text(fontsize=text_h)
         self.register(self.e_text)
 
-    def load(self):
-        self.e_text.font = self.style_get('font digital clock')
-
     def pause(self):
         self.clock.pause()
         super().pause()
@@ -169,15 +154,12 @@ class ClockEntity(ui.Entity):
         if subject == self.game_model and diff.time:
             self.e_text.text = '{:d}:{:02d}'.format(self.clock.time.m, self.clock.time.s)
             if self.clock.time.h >= 1:
-                self.e_text.font = self.style_get('font default')
+                self.e_text.font = self.style_get('font')  # TODO
                 self.e_text.text = 'Zzz..'
             self.e_text.center = self.rel_rect().center
 
     def update_background(self):
-        try:
-            self.background = self.style_get('bg')(self.size)
-        except KeyError:
-            super().update_background()
+        self.background = self.style_get('bg')(self.size)
 
 
 class SPGameEntity(ui.Entity):

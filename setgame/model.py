@@ -244,7 +244,7 @@ class FoundSet:
 
 class PlayerSummary:
     def __init__(self, player, found_sets):
-        self.name = player.label_name
+        self.name = player.name
         self.found_sets = found_sets
         self.won = False
 
@@ -262,7 +262,7 @@ class GameSummary:
         self.winner.won = True
 
     def __str__(self):
-        return '{} wins! - {} sets in {} seconds.'.format(self.winner.label_name, len(self.winner.found_sets), self.time.in_s())
+        return '{} wins! - {} sets in {} seconds.'.format(self.winner.name, len(self.winner.found_sets), self.time.in_s())
 
 
 class Player:
@@ -271,7 +271,6 @@ class Player:
         self.won_games = []
 
     def end_game(self, summary):
-        if summary.winner.label_name == self.name:
+        if summary.winner.name == self.name:
             self.won_games.append(summary)
             print(summary)
-

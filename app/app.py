@@ -221,7 +221,7 @@ class AppConfig:
                 return self.style_packs['default'][try_name][try_category][query]
             except KeyError:
                 pass
-        raise KeyError('')
+        raise KeyError('Cannot find style \'{}\' for \'{}\' in category \'{}\''.format(query, name, category))
 
     def options_get(self, query, name=None, category=None):
         attempts = ('global', 'global'), (name, 'global'), ('global', category),\
@@ -232,7 +232,7 @@ class AppConfig:
                 return self.options[try_name][try_category][query]
             except KeyError:
                 continue
-        raise KeyError('')
+        raise KeyError('Cannot find option \'{}\' for \'{}\' in category \'{}\''.format(query, name, category))
 
     def controls_get(self, query, category=None):
         attempts = 'global', category, 'default'
@@ -241,7 +241,7 @@ class AppConfig:
                 return self.options[try_category][query]
             except KeyError:
                 continue
-        raise KeyError('')
+        raise KeyError('Cannot find command for key \'{}\' in category \'{}\''.format(query, category))
 
     def style_add(self, query, name, category, value):
         if name not in self.style:
@@ -285,6 +285,7 @@ class App(window.Window):
     def __init__(self, manager, **kwargs):
         self.directory = manager.directory
         self.resources = manager.resources
+
         self.config = AppConfig(self.directory, self.resources)
         self.config.style_packs = manager.style_packs
         self.config.compose_style = manager.compose_style
@@ -292,8 +293,4 @@ class App(window.Window):
 
         super().__init__(self.config.options_get('size', 'window'), **kwargs)
 
-        self.name = manager.name
         self.app = self
-
-    def _draw(self):
-        super()._draw()

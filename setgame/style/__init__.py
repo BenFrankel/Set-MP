@@ -27,9 +27,9 @@ default_style_pack = {
         'setgame': {
             'front': _default.card_front,
             'back': _default.card_back,
-            'symbol shape': _default.symbol_shape,
-            'symbol texture': _default.symbol_texture,
-            'symbol color': _default.symbol_color
+            'symbol-shape': _default.symbol_shape,
+            'symbol-texture': _default.symbol_texture,
+            'symbol-color': _default.symbol_color
         }
     },
 

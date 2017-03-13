@@ -104,10 +104,7 @@ class Button(Widget):
         self.update_background()
 
     def update_background(self):
-        try:
-            self.background = self.style_get('button')(self.size, self.widget_state)
-        except KeyError:
-            super().update_background()
+        self.background = self.style_get('button')(self.size, self.widget_state)
 
     def update(self):
         self.label.center = self.rel_rect().center
