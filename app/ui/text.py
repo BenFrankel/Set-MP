@@ -20,7 +20,7 @@ class Text(base.Entity):
     def text(self, other):
         if self._text != other:
             self._text = other
-            self.update_background()
+            self.reload()
 
     @property
     def font(self):
@@ -30,7 +30,7 @@ class Text(base.Entity):
     def font(self, other):
         if self._font != other:
             self._font = other
-            self.update_background()
+            self.reload()
 
     @property
     def fontsize(self):
@@ -40,9 +40,9 @@ class Text(base.Entity):
     def fontsize(self, other):
         if self._fontsize != other:
             self._fontsize = other
-            self.update_background()
+            self.reload()
 
-    def update_background(self):
+    def reload(self):
         if self._font is None:
             self._font = self.style_get('font')
         self.background = self.font.render(self.text, fgcolor=self.fgcolor, size=self.fontsize)[0]

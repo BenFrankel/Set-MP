@@ -14,13 +14,13 @@ class CardEntity(ui.Widget):
 
     def notify(self, subject, diff):
         if subject == self.card_model and (diff.selected or diff.face_up):
-            self.update_background()
+            self.reload()
 
     def widget_state_change(self, before, after):
         if before == ui.WidgetState.HOVER and after == ui.WidgetState.PRESS and self.card_model.face_up:
             self.card_model.toggle_select()
 
-    def update_background(self):
+    def reload(self):
         self.background = self.style_get('card')(self.size,
                                                  *self.card_model.values,
                                                  face_up=self.card_model.face_up,
@@ -77,7 +77,7 @@ class PlayDeckEntity(ui.Entity):
                 elif card.is_alive:
                     card.hide()
 
-    def update_background(self):
+    def reload(self):
         self.background = self.style_get('bg')(self.size)
 
 
@@ -95,9 +95,9 @@ class DrawDeckEntity(ui.Entity):
 
     def notify(self, subject, diff):
         if subject == self.deck and diff.draw_deck:
-            self.update_background()
+            self.reload()
 
-    def update_background(self):
+    def reload(self):
         self.background = self.style_get('draw-deck')(self.size, self.num_cards)
 
 
@@ -123,9 +123,9 @@ class DiscardDeckEntity(ui.Entity):
 
     def notify(self, subject, diff):
         if subject == self.deck and diff.discard_deck:
-            self.update_background()
+            self.reload()
 
-    def update_background(self):
+    def reload(self):
         self.background = self.style_get('discard-deck')(self.size, self.num_cards, self.top_card)
 
 
@@ -154,12 +154,13 @@ class ClockEntity(ui.Entity):
         if subject == self.game_model and diff.time:
             self.e_text.text = '{:d}:{:02d}'.format(self.clock.time.m, self.clock.time.s)
             if self.clock.time.h >= 1:
-                self.e_text.font = self.style_get('font')  # TODO
+                self.e_text.font = self.style_get('font')  # TODO: Use default font
                 self.e_text.text = 'Zzz..'
             self.e_text.center = self.rel_rect().center
 
-    def update_background(self):
+    def reload(self):  # TODO: Text appears misplaced at 0:00
         self.background = self.style_get('bg')(self.size)
+        self.e_text.font = self.style_get('font')
 
 
 class SPGameEntity(ui.Entity):
@@ -198,7 +199,7 @@ class SPGameEntity(ui.Entity):
 
     def notify(self, subject, diff):
         if subject == self.model and diff.completed:
-            pass  # TODO: Can handle win conditions here.
+            pass  # TODO: Handle win conditions here
 
     def pause(self):
         if not self.model.completed:

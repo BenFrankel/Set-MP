@@ -1,4 +1,5 @@
 import pygame
+# TODO: Reduce CPU usage
 
 
 class Rect:
@@ -357,13 +358,13 @@ class Entity(Rect):
         self.size = other.get_size()
         self.dirty = True
 
-    def update_background(self):
+    def reload(self):
         pass
 
     def resize(self, size):
         if self.size != size:
             self.size = size
-            self.update_background()
+            self.reload()
 
     def copy_rect(self):
         return Rect(self.x, self.y, self.w, self.h)
@@ -530,7 +531,7 @@ class Entity(Rect):
         if self._visible:
             if not self._loaded:
                 self._loaded = True
-                self.update_background()
+                self.reload()
             for child in self._children:
                 if not child.is_transparent and child.dirty and not self.dirty:
                     for rect in child._transition_rects():

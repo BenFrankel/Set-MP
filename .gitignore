@@ -1,9 +1,9 @@
-# Local data.
+# Local data
 appdata/
 userdata/
 
 
-# General Python .gitignore from https://github.com/github/gitignore/blob/master/Python.gitignore.
+# General Python .gitignore from https://github.com/github/gitignore/blob/master/Python.gitignore
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -34,7 +34,7 @@ wheels/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
-#  before PyInstaller builds the exe, so as to inject date/other infos into it.
+#  before PyInstaller builds the exe, so as to inject date/other infos into it
 *.manifest
 *.spec
 

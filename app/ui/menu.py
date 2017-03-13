@@ -101,9 +101,9 @@ class Button(Widget):
     def widget_state_change(self, before, after):
         if before == WidgetState.PRESS and after == WidgetState.HOVER:
             self.send_message(self.message)
-        self.update_background()
+        self.reload()
 
-    def update_background(self):
+    def reload(self):
         self.background = self.style_get('button')(self.size, self.widget_state)
 
     def update(self):

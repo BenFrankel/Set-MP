@@ -29,7 +29,7 @@ class Window(base.Entity):
         else:
             super().handle_message(sender, message)
 
-    def update_background(self):
+    def reload(self):
         self.bgcolor = self.style_get('bgcolor')
 
     def _draw(self):
