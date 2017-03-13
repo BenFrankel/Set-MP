@@ -1,1 +1,4 @@
-__all__ = ['default_style', 'layout', 'model']
+from .setup import manager
+
+
+__all__ = ['name', 'manager', 'style', 'layout', 'model', 'user']

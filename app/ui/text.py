@@ -1,48 +1,16 @@
-import os.path
-
-import pygame.freetype
-
-import const
 from . import base
 
 
-pygame.freetype.init()
-
-
-font_dict = dict()
-
-
-def load_font(filename):
-    return pygame.freetype.Font(os.path.join(const.dir_font, filename))
-
-
-def load_fonts():
-    for font_inf in const.fonts:
-        try:
-            font = load_font(font_inf[1])
-        except FileNotFoundError:
-            print('Unable to load font:', font_inf)
-            exit()
-        else:
-            font_dict[font_inf[0]] = font
-
-
-def get_font(name):
-    return font_dict[name]
-
-
 class Text(base.Entity):
-    def __init__(self, text='', fontsize=1, fgcolor=None, font=None):
+    def __init__(self, text='', font=None, fontsize=1, fgcolor=None):
         super().__init__(0, 0, hoverable=False, clickable=False)
         self._text = text
         self._font = font
         self._fontsize = fontsize
-        if font is None:
-            self._font = get_font(const.font_default)
+        self._font = font
         self.fgcolor = fgcolor
         if fgcolor is None:
             self.fgcolor = (0, 0, 0)
-        self.update_background()
 
     @property
     def text(self):
@@ -75,4 +43,6 @@ class Text(base.Entity):
             self.update_background()
 
     def update_background(self):
+        if self._font is None:
+            self._font = self.style_get('font')
         self.background = self.font.render(self.text, fgcolor=self.fgcolor, size=self.fontsize)[0]

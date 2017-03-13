@@ -207,14 +207,19 @@ class Entity(Rect):
     def __init__(self, w, h, x=0, y=0, visible=True, hoverable=True, clickable=True, typable=False, opacity=1):
         super().__init__(x, y, w, h)
 
-        # Heirarchical references.
+        # Configuration identifier
+        self.name = None
+        self.category = None
+
+        # Hierarchical references
+        self._app = None
         self.parent = None
         self._children = []
         self.key_listener = None
 
         self.z = 0
 
-        # General flags.
+        # General flags
         self._visible = visible
         self._hoverable = hoverable
         self._clickable = clickable
@@ -223,7 +228,7 @@ class Entity(Rect):
         self._paused = False
         self._hovered = False
 
-        # Surfaces.
+        # Surfaces
         if self.is_transparent:
             self._colorkey = None
             self._background = None
@@ -240,7 +245,7 @@ class Entity(Rect):
             self._background.set_colorkey(self.colorkey)
             self._display.set_colorkey(self.colorkey)
 
-        # Dirty Rectangle memory.
+        # Dirty Rectangle memory
         self._dirty = False
         self._dirty_rects = []
         self._dirty_area = 0
@@ -248,7 +253,7 @@ class Entity(Rect):
         self._old_rect = None
         self._old_visible = None
 
-        # Style.
+        # Style
         self._style = dict()
 
     @property
@@ -290,6 +295,16 @@ class Entity(Rect):
     @property
     def is_alive(self):
         return self._visible and not self._paused
+
+    @property
+    def app(self):
+        return self._app
+
+    @app.setter
+    def app(self, other):
+        self._app = other
+        for child in self._children:
+            child.app = other
 
     @property
     def dirty(self):
@@ -341,19 +356,6 @@ class Entity(Rect):
             self.size = size
             self.update_background()
 
-    def style_add(self, style=None, **kwargs):
-        self._style.update(style, **kwargs)
-        self.update_background()
-        for child in self._children:
-            child.style_add()  # Hack-ish ...
-
-    def style_get(self, name, *args, **kwargs):
-        if name not in self._style:
-            if self.is_root:
-                raise KeyError('Cannot find style to handle request: \'' + name + '\'')
-            return self.parent.style_get(name, *args, **kwargs)
-        return self._style[name](*args, **kwargs)
-
     def copy_rect(self):
         return Rect(self.x, self.y, self.w, self.h)
 
@@ -380,14 +382,24 @@ class Entity(Rect):
     def unpause(self):
         self._paused = False
 
+    def style_get(self, query):
+        return self._app.config.style_get(query, self.name, self.category)
+
+    def options_get(self, query):
+        return self._app.config.options_get(query, self.name, self.category)
+
+    def controls_get(self, query):
+        return self._app.config.controls_get(query, self.name, self.category)
+
     def register(self, child):
         if not child.is_root:
             child.parent.unregister(child)
         for rect in child._dirty_rects:
             child._clean_dirty_rects(rect)
         child.parent = self
+        child.app = self._app
+        child.category = self.category
         child.dirty = child._visible
-        child.style_add()  # Hack-ish ...
         self._children.append(child)
 
     def register_all(self, children):
@@ -397,6 +409,8 @@ class Entity(Rect):
     def unregister(self, child):
         self._children.remove(child)
         child.parent = None
+        child.app = None
+        child.category = None
         if child._old_visible and child._old_rect is not None:
             self._add_dirty_rect(child._old_rect)
 
@@ -526,7 +540,7 @@ class Entity(Rect):
     def track(self):
         pass
 
-    def _track(self):  # Necessary because important mouse events may be lost due to quick movement.
+    def _track(self):  # Necessary because important mouse events may be lost due to quick movement
         self.track()
         pos = pygame.mouse.get_pos()
         if not self.is_root:

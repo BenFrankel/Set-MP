@@ -1,14 +1,14 @@
 import pygame
 
-import const
-from app.ui import base, menu, text
-from setgame import config
+from app import ui
 from setgame.model import Game
 
 
-class CardEntity(menu.Widget):
+class CardEntity(ui.Widget):
     def __init__(self, card, *args, **kwargs):
         super().__init__(opacity=2, *args, **kwargs)
+        self.name = 'card'
+
         self.card_model = card
         self.card_model.add_observer(self)
 
@@ -17,23 +17,24 @@ class CardEntity(menu.Widget):
             self.update_background()
 
     def widget_state_change(self, before, after):
-        if before == menu.WidgetState.HOVER and after == menu.WidgetState.PRESS and self.card_model.face_up:
+        if before == ui.WidgetState.HOVER and after == ui.WidgetState.PRESS and self.card_model.face_up:
             self.card_model.toggle_select()
 
     def update_background(self):
         try:
-            self.background = self.style_get('setgame-card',
-                                             self.size,
-                                             *self.card_model.values,
-                                             face_up=self.card_model.face_up,
-                                             selected=self.card_model.selected)
+            self.background = self.style_get('card')(self.size,
+                                                     *self.card_model.values,
+                                                     face_up=self.card_model.face_up,
+                                                     selected=self.card_model.selected)
         except KeyError:
             super().update_background()
 
 
-class PlayDeckEntity(base.Entity):
+class PlayDeckEntity(ui.Entity):
     def __init__(self, deck, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.name = 'play-deck'
+
         self.deck_model = deck
         deck.add_observer(self)
         for card in deck.cards:
@@ -81,14 +82,16 @@ class PlayDeckEntity(base.Entity):
 
     def update_background(self):
         try:
-            self.background = self.style_get('setgame-play-deck-bg', self.size)
+            self.background = self.style_get('bg')(self.size)
         except KeyError:
             super().update_background()
 
 
-class DrawDeckEntity(base.Entity):
+class DrawDeckEntity(ui.Entity):
     def __init__(self, deck, *args, **kwargs):
         super().__init__(opacity=2, *args, **kwargs)
+        self.name = 'draw-deck'
+
         self.deck = deck
         deck.add_observer(self)
 
@@ -102,14 +105,16 @@ class DrawDeckEntity(base.Entity):
 
     def update_background(self):
         try:
-            self.background = self.style_get('setgame-draw-deck', self.size, self.num_cards)
+            self.background = self.style_get('draw-deck')(self.size, self.num_cards)
         except KeyError:
             super().update_background()
 
 
-class DiscardDeckEntity(base.Entity):
+class DiscardDeckEntity(ui.Entity):
     def __init__(self, deck, *args, **kwargs):
         super().__init__(opacity=2, *args, **kwargs)
+        self.name = 'discard-deck'
+
         self.deck = deck
         deck.add_observer(self)
 
@@ -131,21 +136,26 @@ class DiscardDeckEntity(base.Entity):
 
     def update_background(self):
         try:
-            self.background = self.style_get('setgame-discard-deck', self.size, self.num_cards, self.top_card)
+            self.background = self.style_get('discard-deck')(self.size, self.num_cards, self.top_card)
         except KeyError:
             super().update_background()
 
 
-class ClockEntity(base.Entity):
+class ClockEntity(ui.Entity):
     def __init__(self, game_model, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.name = 'clock'
+
         self.game_model = game_model
         self.clock = game_model.clock
         game_model.add_observer(self)
 
         text_h = int(self.h * 0.9)
-        self.e_text = text.Text(fontsize=text_h, font=text.get_font(const.font_digital_clock))
+        self.e_text = ui.Text(fontsize=text_h)
         self.register(self.e_text)
+
+    def load(self):
+        self.e_text.font = self.style_get('font digital clock')
 
     def pause(self):
         self.clock.pause()
@@ -159,24 +169,22 @@ class ClockEntity(base.Entity):
         if subject == self.game_model and diff.time:
             self.e_text.text = '{:d}:{:02d}'.format(self.clock.time.m, self.clock.time.s)
             if self.clock.time.h >= 1:
-                self.e_text.font = text.get_font(const.font_default)
+                self.e_text.font = self.style_get('font default')
                 self.e_text.text = 'Zzz..'
             self.e_text.center = self.rel_rect().center
 
     def update_background(self):
         try:
-            self.background = self.style_get('setgame-clock-bg', self.size)
+            self.background = self.style_get('bg')(self.size)
         except KeyError:
             super().update_background()
 
 
-class SPGameEntity(base.Entity):
+class SPGameEntity(ui.Entity):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.model = Game()
         self.model.add_observer(self)
-
-        self.style_add(config.default_style)
 
         deck_w = int(self.w * 0.6)
         deck_h = int(self.h * 0.7)
@@ -224,9 +232,11 @@ class SPGameEntity(base.Entity):
         self.model.tick()
 
 
-class GameHandler(base.Entity):
+class GameHandler(ui.Entity):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, typable=True, opacity=0, **kwargs)
+        self.category = 'setgame'
+
         self.game = SPGameEntity(*args)
         self.register(self.game)
 
@@ -235,17 +245,17 @@ class GameHandler(base.Entity):
         button_gap = 3 * button_w // 2
         button_x = self.w // 2 - 2 * button_w
         button_y = (self.game.play_deck.bottom + self.h - button_h) // 2
-        self.exit_button = menu.Button('Exit', 'exit', button_w, button_h)
+        self.exit_button = ui.Button('Exit', 'exit', button_w, button_h)
         self.exit_button.pos = (button_x, button_y)
         self.register(self.exit_button)
 
         button_x += button_gap
-        self.pause_button = menu.Button('Pause', 'pause', button_w, button_h)
+        self.pause_button = ui.Button('Pause', 'pause', button_w, button_h)
         self.pause_button.pos = (button_x, button_y)
         self.register(self.pause_button)
 
         button_x += button_gap
-        self.restart_button = menu.Button('Restart', 'restart', button_w, button_h)
+        self.restart_button = ui.Button('Restart', 'restart', button_w, button_h)
         self.restart_button.pos = (button_x, button_y)
         self.register(self.restart_button)
 
@@ -259,11 +269,11 @@ class GameHandler(base.Entity):
             self.handle_message(sender, 'unpause')
         elif message == 'pause':
             self.game.model.pause()
-            self.pause_button.name = 'Unpause'
+            self.pause_button.label_name = 'Unpause'
             self.pause_button.message = 'unpause'
         elif message == 'unpause' or message == 'restart':
             self.game.model.unpause()
-            self.pause_button.name = 'Pause'
+            self.pause_button.label_name = 'Pause'
             self.pause_button.message = 'pause'
         else:
             super().handle_message(sender, message)

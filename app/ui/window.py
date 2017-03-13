@@ -5,7 +5,7 @@ from . import base
 
 class Window(base.Entity):
     def __init__(self, *args, **kwargs):
-        self.surf = pygame.display.set_mode(*args, **kwargs)
+        self.surf = pygame.display.set_mode(*args)
         super().__init__(*self.surf.get_size(), typable=True, **kwargs)
 
     def handle_event(self, event):

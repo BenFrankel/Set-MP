@@ -16,6 +16,8 @@ class WidgetState(Enum):
 class Widget(base.Entity):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, hoverable=True, clickable=True, typable=False, **kwargs)
+        self.name = 'widget'
+
         self._widget_state = WidgetState.IDLE
 
     @property
@@ -76,22 +78,24 @@ class Widget(base.Entity):
 
 
 class Button(Widget):
-    def __init__(self, name, message, *args, **kwargs):
+    def __init__(self, label_name, message, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._name = name
+        self.name = 'button'
+
+        self._label_name = label_name
         self.message = message
 
-        self.label = text.Text(name, fontsize=max(self.h // 3, 14), fgcolor=(255, 255, 255))
+        self.label = text.Text(label_name, fontsize=max(self.h // 3, 14), fgcolor=(255, 255, 255))
         self.register(self.label)
 
     @property
-    def name(self):
-        return self._name
+    def label_name(self):
+        return self._label_name
 
-    @name.setter
-    def name(self, other):
-        if self._name != other:
-            self._name = other
+    @label_name.setter
+    def label_name(self, other):
+        if self._label_name != other:
+            self._label_name = other
             self.label.text = other
 
     def widget_state_change(self, before, after):
@@ -101,7 +105,7 @@ class Button(Widget):
 
     def update_background(self):
         try:
-            self.background = self.style_get('button', self.size, self.widget_state)
+            self.background = self.style_get('button')(self.size, self.widget_state)
         except KeyError:
             super().update_background()
 
@@ -116,6 +120,8 @@ class Button(Widget):
 class Menu(base.Entity):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.name = 'menu'
+
         self.buttons = []
 
     def add_button(self, name, message):

@@ -1,9 +1,9 @@
+import os.path
 import pickle
 import time
-import os.path
 
-from setgame import config
 import const
+from setgame.style import default
 
 
 def gen_id():
@@ -35,9 +35,9 @@ def create_user(name):
                           None, [], [],
                           [],
                           time.time(),
-                          config.default_style,
-                          config.default_options,
-                          config.default_controls,
+                          default.default_style,
+                          default.default_options,
+                          default.default_controls,
                           [], [], [], [])
 
     new_model.change_address(local_address)  # TODO
@@ -72,31 +72,42 @@ class AddressInfo:
 
 class PublicData:
     def __init__(self, user):
-        self.name = user.name
+        self.name = user.label_name
         self.id = user.id
         self.address = user.address
         self.common_addresses = user.common_addresses()
         self.friends = user.friends
-        self.timestamp = user.timestamp
+        self.version = user.version
 
 
 class UserModel:
-    def __init__(self, name, id_, address, address_info, common_addresses, friends, timestamp, style, options, controls,
-                 outgoing_requests, sent_requests, received_requests, history):
+    def __init__(self, name, id_, address, address_info, common_addresses, style, options, controls, friends,
+                 outgoing_requests, sent_requests, received_requests, history, version):
+        # Identification
         self.name = name
         self.id = id_
+
+        # Address
         self.address = address
         self.address_info = address_info
         self.common_addresses = common_addresses
-        self.friends = friends
-        self.timestamp = timestamp
+
+        # Configuration
         self.style = style
         self.options = options
         self.controls = controls
+
+        # Friend list
+        self.friends = friends
         self.outgoing_requests = outgoing_requests
         self.sent_requests = sent_requests
         self.received_requests = received_requests
+
+        #
         self.history = history
+
+        #
+        self.version = version
 
     def change_address(self, address):
         self.address = address
@@ -113,7 +124,7 @@ class UserModel:
             self.common_addresses.sort(lambda x: x.recurrence)
 
     def save(self):
-        self.timestamp = time.time()
+        self.version += 1
         save_user_data(self)
 
 
@@ -136,6 +147,6 @@ class User:
             pass
 
     def rename(self, name):
-        self.model.name = name
+        self.model.label_name = name
         self.model.save()
         self.notify_all()
