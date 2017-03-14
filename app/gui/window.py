@@ -8,7 +8,7 @@ class Window(base.Entity):
         self.surf = pygame.display.set_mode(*args)
         super().__init__(*self.surf.get_size(), typable=True, **kwargs)
         self.name = 'window'
-        self.bgcolor = (255, 255, 255)
+        self.bg_color = (255, 255, 255)
 
     def handle_event(self, event):
         if event.type == pygame.KEYDOWN:
@@ -30,10 +30,10 @@ class Window(base.Entity):
             super().handle_message(sender, message)
 
     def reload(self):
-        self.bgcolor = self.style_get('bgcolor')
+        self.bg_color = self.style_get('bg-color')
 
     def _draw(self):
         if super()._draw():
-            self.surf.fill(self.bgcolor)
+            self.surf.fill(self.bg_color)
             self.surf.blit(self._display, (0, 0))
             pygame.display.update()

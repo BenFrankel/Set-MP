@@ -1,13 +1,13 @@
-from app import ui, AppManager
+from app import gui, AppManager
 from .layout import GameHandler
 from . import style
 
 
 def setup(app):
-    main_seq = ui.switch.Sequence(*app.size)
-    main_hub = ui.switch.Hub(*main_seq.size)
+    main_seq = gui.switch.Sequence(*app.size)
+    main_hub = gui.switch.Hub(*main_seq.size)
 
-    main_menu = ui.menu.Menu(*main_hub.size)
+    main_menu = gui.menu.Menu(*main_hub.size)
     main_menu.add_button('Single Player', 'sp')
     main_menu.add_button('Multiplayer', 'mp')
     main_menu.add_button('Quit', 'exit')

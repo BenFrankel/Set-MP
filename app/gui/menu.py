@@ -2,7 +2,7 @@ from enum import Enum
 
 import pygame
 
-from app.ui import base, text
+from app.gui import base, text
 
 
 class WidgetState(Enum):

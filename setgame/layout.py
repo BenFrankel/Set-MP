@@ -1,10 +1,10 @@
 import pygame
 
-from app import ui
+from app import gui
 from setgame.model import Game
 
 
-class CardEntity(ui.Widget):
+class CardEntity(gui.Widget):
     def __init__(self, card, *args, **kwargs):
         super().__init__(opacity=2, *args, **kwargs)
         self.name = 'card'
@@ -17,7 +17,7 @@ class CardEntity(ui.Widget):
             self.reload()
 
     def widget_state_change(self, before, after):
-        if before == ui.WidgetState.HOVER and after == ui.WidgetState.PRESS and self.card_model.face_up:
+        if before == gui.WidgetState.HOVER and after == gui.WidgetState.PRESS and self.card_model.face_up:
             self.card_model.toggle_select()
 
     def reload(self):
@@ -27,7 +27,7 @@ class CardEntity(ui.Widget):
                                                  selected=self.card_model.selected)
 
 
-class PlayDeckEntity(ui.Entity):
+class PlayDeckEntity(gui.Entity):
     def __init__(self, deck, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.name = 'play-deck'
@@ -81,7 +81,7 @@ class PlayDeckEntity(ui.Entity):
         self.background = self.style_get('bg')(self.size)
 
 
-class DrawDeckEntity(ui.Entity):
+class DrawDeckEntity(gui.Entity):
     def __init__(self, deck, *args, **kwargs):
         super().__init__(opacity=2, *args, **kwargs)
         self.name = 'draw-deck'
@@ -101,7 +101,7 @@ class DrawDeckEntity(ui.Entity):
         self.background = self.style_get('draw-deck')(self.size, self.num_cards)
 
 
-class DiscardDeckEntity(ui.Entity):
+class DiscardDeckEntity(gui.Entity):
     def __init__(self, deck, *args, **kwargs):
         super().__init__(opacity=2, *args, **kwargs)
         self.name = 'discard-deck'
@@ -129,7 +129,7 @@ class DiscardDeckEntity(ui.Entity):
         self.background = self.style_get('discard-deck')(self.size, self.num_cards, self.top_card)
 
 
-class ClockEntity(ui.Entity):
+class ClockEntity(gui.Entity):
     def __init__(self, game_model, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.name = 'clock'
@@ -139,7 +139,7 @@ class ClockEntity(ui.Entity):
         game_model.add_observer(self)
 
         text_h = int(self.h * 0.9)
-        self.e_text = ui.Text(fontsize=text_h)
+        self.e_text = gui.Text(fontsize=text_h)
         self.register(self.e_text)
 
     def pause(self):
@@ -163,7 +163,7 @@ class ClockEntity(ui.Entity):
         self.e_text.font = self.style_get('font')
 
 
-class SPGameEntity(ui.Entity):
+class SPGameEntity(gui.Entity):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.model = Game()
@@ -215,7 +215,7 @@ class SPGameEntity(ui.Entity):
         self.model.tick()
 
 
-class GameHandler(ui.Entity):
+class GameHandler(gui.Entity):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, typable=True, opacity=0, **kwargs)
         self.category = 'setgame'
@@ -228,17 +228,17 @@ class GameHandler(ui.Entity):
         button_gap = 3 * button_w // 2
         button_x = self.w // 2 - 2 * button_w
         button_y = (self.game.play_deck.bottom + self.h - button_h) // 2
-        self.exit_button = ui.Button('Exit', 'exit', button_w, button_h)
+        self.exit_button = gui.Button('Exit', 'exit', button_w, button_h)
         self.exit_button.pos = (button_x, button_y)
         self.register(self.exit_button)
 
         button_x += button_gap
-        self.pause_button = ui.Button('Pause', 'pause', button_w, button_h)
+        self.pause_button = gui.Button('Pause', 'toggle-pause', button_w, button_h)
         self.pause_button.pos = (button_x, button_y)
         self.register(self.pause_button)
 
         button_x += button_gap
-        self.restart_button = ui.Button('Restart', 'restart', button_w, button_h)
+        self.restart_button = gui.Button('Restart', 'restart', button_w, button_h)
         self.restart_button.pos = (button_x, button_y)
         self.register(self.restart_button)
 
@@ -250,23 +250,19 @@ class GameHandler(ui.Entity):
         if message == 'restart':
             self.game.model.restart()
             self.handle_message(sender, 'unpause')
+        elif message == 'toggle-pause':
+            if self.game.model.paused:
+                self.handle_message(sender, 'unpause')
+            else:
+                self.handle_message(sender, 'pause')
         elif message == 'pause':
             self.game.model.pause()
             self.pause_button.label_name = 'Unpause'
-            self.pause_button.message = 'unpause'
-        elif message == 'unpause' or message == 'restart':
+        elif message == 'unpause':
             self.game.model.unpause()
             self.pause_button.label_name = 'Pause'
-            self.pause_button.message = 'pause'
         else:
             super().handle_message(sender, message)
-
-    def key_down(self, unicode, key, mod):
-        if key == pygame.K_p:
-            self.pause_button.send_message(self.pause_button.message)
-        elif key == pygame.K_r:
-            self.restart_button.send_message(self.restart_button.message)
-        super().key_down(unicode, key, mod)
 
     def show(self):
         if not self.game.model.started:

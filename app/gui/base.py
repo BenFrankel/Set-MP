@@ -1,5 +1,6 @@
 import pygame
-# TODO: Reduce CPU usage
+
+from .. import keys
 
 
 class Rect:
@@ -399,7 +400,7 @@ class Entity(Rect):
         return self._app.config.options_get(query, self.name, self.category)
 
     def controls_get(self, query):
-        return self._app.config.controls_get(query, self.name, self.category)
+        return self._app.config.controls_get(query, self.category)
 
     def register(self, child):
         if not child.is_root:
@@ -430,6 +431,11 @@ class Entity(Rect):
             self.unregister(child)
 
     def key_down(self, unicode, key, mod):
+        try:
+            self.handle_message(self, self.controls_get(keys.key_name(key, mod)))
+            print(self, key, mod)
+        except KeyError:
+            pass
         if self.key_listener is not None and self.key_listener.is_alive:
             self.key_listener.key_down(unicode, key, mod)
 

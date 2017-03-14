@@ -1,4 +1,4 @@
-from . import ui
+from . import gui
 from .app import AppManager
 
 

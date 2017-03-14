@@ -14,14 +14,7 @@ while True:
         if event.type == pygame.QUIT:
             exit()
 
-        elif event.type == pygame.KEYDOWN:  # TODO: Handle this in Window controls.json.
-            if event.key == pygame.K_ESCAPE:
-                exit()
-
         app.handle_event(event)
 
     app.tick()
-
-    fps_clock.tick()
-
-    # print(fps_clock.get_fps())
+    fps_clock.tick(30)
