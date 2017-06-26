@@ -13,13 +13,20 @@ __all__ = ['default']
 default_style_pack = {
     'button': {
         'default': {
-            'button': _default.button
+            'background': _default.button_bg
+        }
+    },
+
+    'text-box': {
+        'default': {
+            'background': _default.text_box_bg,
+            'cursor-bg': _default.text_box_cursor_bg
         }
     },
 
     'clock': {
         'setgame': {
-            'bg': _default.clock_bg
+            'background': _default.clock_bg
         }
     },
 
@@ -35,7 +42,7 @@ default_style_pack = {
 
     'play-deck': {
         'setgame': {
-            'bg': _default.play_deck_bg
+            'background': _default.play_deck_bg
         }
     }
 }

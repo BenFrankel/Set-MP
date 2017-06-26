@@ -114,12 +114,29 @@ def symbol_shape(size, shape):
     return outline, mask
 
 
-def button(size, state):
+def button_bg(size, state):
     surf = pygame.Surface(size)
 
-    shade = [0, 40, 40, 60, 60][state.value]
+    shade = [0, 40, 40, 60, 60][state]
 
     surf.fill((shade, shade, shade))
     surf.set_alpha(100)
 
+    return surf
+
+
+def text_box_bg(size, margin):
+    surf = pygame.Surface(size)
+
+    surf.fill((205, 205, 205))
+    pygame.draw.rect(surf, (160, 160, 160), surf.get_bounding_rect(), margin + 1)
+    pygame.draw.rect(surf, (0, 0, 0), surf.get_bounding_rect(), 1)
+    surf.set_alpha(100)
+
+    return surf
+
+
+def text_box_cursor_bg(size):
+    surf = pygame.Surface(size)
+    surf.fill((0, 0, 0))
     return surf

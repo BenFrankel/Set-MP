@@ -1,54 +1,52 @@
 import os.path
 import pickle
 import time
+import socket
 
-import const
 from setgame.style import default
+
+
+def get_local_address():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect(("8.8.8.8", 80))
+    result = s.getsockname()[0]
+    s.close()
+
+    return result
 
 
 def gen_id():
     return 1  # TODO
 
 
-def user_data_filename(id_):
-    return os.path.join(const.dir_user_data, str(id_))
-
-
-def friend_data_filename(id_):
-    return os.path.join(const.dir_friend_data, str(id_))
-
-
-def save_user_data(model):
-    filename = user_data_filename(model.id)
+def save_user_data(filename, model):
     with open(filename, 'w') as f:
         pickle.dump(model, f)
 
 
-def load_user_model(id_):
-    filename = user_data_filename(id_)
+def load_user_model(filename):
     with open(filename, 'r') as f:
         return pickle.load(f)
 
 
-def create_user(name):
+def create_user(dir_user_data, name):
     new_model = UserModel(name, gen_id(),
                           None, [], [],
                           [],
                           time.time(),
-                          default.default_style,
-                          default.default_options,
-                          default.default_controls,
+                          None,
+                          None,
+                          None,
                           [], [], [], [])
 
-    new_model.change_address(local_address)  # TODO
-
-    new_model.save()
+    new_model.change_address(local_address)  # TODO: Get local IP address
+    new_model.save(dir_user_data)
 
     return User(new_model)
 
 
-def log_in(id_):
-    model = load_user_model(id_)
+def login(dir_user_data, id_):
+    model = load_user_model(os.path.join(dir_user_data, id_))
     user = User(model)
     if local_address != model.address:
         model.change_address(local_address)
@@ -103,10 +101,10 @@ class UserModel:
         self.sent_requests = sent_requests
         self.received_requests = received_requests
 
-        #
+        # History
         self.history = history
 
-        #
+        # Version
         self.version = version
 
     def change_address(self, address):
@@ -123,9 +121,9 @@ class UserModel:
             self.common_addresses.append(address)
             self.common_addresses.sort(lambda x: x.recurrence)
 
-    def save(self):
+    def save(self, dir_user_data):
         self.version += 1
-        save_user_data(self)
+        save_user_data(dir_user_data, self)
 
 
 class User:
@@ -137,13 +135,13 @@ class User:
     def broadcast(self):
         public_data = PublicData(self.model)
         for friend in self.model.friends:
-            # TODO: Send public data to friend.
+            # TODO: Send public data to friend
             pass
 
     def notify_all(self):
         public_data = PublicData(self.model)
         for friend in self.connections:
-            # TODO: Send public data to friend.
+            # TODO: Send public data to friend
             pass
 
     def rename(self, name):

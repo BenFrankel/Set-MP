@@ -1,8 +1,8 @@
 import itertools
 import random
 
-import timer
-from app import model
+from hgf import model
+from hgf.util import timer
 
 
 def is_match(values):
@@ -13,7 +13,7 @@ def is_set(cards):
     return all(is_match(comparison) for comparison in zip(*[card.values for card in cards]))
 
 
-def has_set(cards):  # Not important, but is there an O(N) algorithm?
+def has_set(cards):
     return any(is_set(sub) for sub in itertools.combinations(cards, 3))
 
 
@@ -71,22 +71,24 @@ class Card(model.Subject):
         return repr(self)
 
     def __repr__(self):
-        return '<Card(' + str(self.values)[1:-1] + ')>'
+        return '<Card({}, {}, {}, {})>'.format(*self.values)
 
 
 class Deck(model.Subject):
     def __init__(self):
         super().__init__()
-        self.cards = [Card(values) for values in itertools.product((0, 1, 2), repeat=4)]
-        self.register_all(self.cards)
-
-        random.shuffle(self.cards)
-
-        self._draw_deck = self.cards[:]
+        self.cards = None
+        self._draw_deck = None
         self._play_deck = []
         self._discard_deck = []
-
         self.state_properties = 'draw_deck', 'play_deck', 'discard_deck'
+
+    def load_hook(self):
+        self.cards = [Card(values) for values in itertools.product((0, 1, 2), repeat=4)]
+        random.shuffle(self.cards)
+        self.register_all(self.cards)
+
+        self._draw_deck = self.cards[:]
 
     @property
     def draw_deck(self):
@@ -142,23 +144,25 @@ class Deck(model.Subject):
 class Game(model.Subject):
     def __init__(self):
         super().__init__()
+        self.deck = None
+        self.clock = None
+        self.user = None
+        self.players = None
+        self.started = False
+        self.paused = False
+        self.completed = False
+        self.found_sets = []
+        self.state_properties = 'started', 'completed', 'time'
+
+    def load_hook(self):
         self.deck = Deck()
         self.register(self.deck)
+        self.deck.load()
 
-        # Timer.
         self.clock = timer.Timer()
 
         self.user = Player('Username')
         self.players = [self.user]
-
-        # State flags.
-        self.started = False
-        self.paused = False
-        self.completed = False
-
-        self.found_sets = []
-
-        self.state_properties = 'started', 'completed', 'time'
 
     @property
     def time(self):
@@ -176,17 +180,17 @@ class Game(model.Subject):
 
     def pause(self):
         if not self.paused and not self.completed:
-            self.paused = True
             self.clock.pause()
             for card in self.deck.cards:
                 card.flip()
+        self.paused = True
 
     def unpause(self):
         if self.paused and not self.completed:
-            self.paused = False
             self.clock.unpause()
             for card in self.deck.cards:
                 card.flip()
+        self.paused = False
 
     def end(self):
         self.completed = True
@@ -219,8 +223,8 @@ class Game(model.Subject):
                 self.deck.draw_card(index)
         self.found_sets.append(FoundSet(player, cards))
 
-    def update(self):
-        if not self.completed:
+    def update_hook(self):
+        if self.started and not self.completed:
             selected = self.deck.get_selected()
             if len(selected) >= 3:
                 if is_set(selected):

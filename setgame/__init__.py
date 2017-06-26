@@ -1,4 +1,4 @@
-from .setup import manager
+from .app import launcher
 
 
-__all__ = ['name', 'manager', 'style', 'layout', 'model', 'user']
+__all__ = ['style', 'layout', 'model', 'user']

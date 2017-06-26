@@ -1,13 +1,16 @@
 import pygame
 
-import setgame
+from setgame import launcher
 
 
 pygame.init()
-setgame.manager.load()
+launcher.load()
 
-app = setgame.manager.launch()
+app = launcher.spawn_app()
 fps_clock = pygame.time.Clock()
+pygame.mixer.quit()
+
+app.open()
 
 while True:
     for event in pygame.event.get():
@@ -16,5 +19,5 @@ while True:
 
         app.handle_event(event)
 
-    app.tick()
+    app.step()
     fps_clock.tick(30)

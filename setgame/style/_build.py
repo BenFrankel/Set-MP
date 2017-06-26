@@ -85,6 +85,6 @@ def compose(config):
 
         return surf
 
-    config.style_add('card', 'card', 'setgame', card)
-    config.style_add('discard-deck', 'discard-deck', 'setgame', discard_deck)
-    config.style_add('draw-deck', 'draw-deck', 'setgame', draw_deck)
+    config.style_add('background', 'card', 'setgame', card)
+    config.style_add('background', 'discard-deck', 'setgame', discard_deck)
+    config.style_add('background', 'draw-deck', 'setgame', draw_deck)
