@@ -47,7 +47,7 @@ def compose(config):
 
         return card_image
 
-    def draw_deck(size, num_cards):
+    def draw_pile(size, num_cards, top_card):
         card_w = size[0] // 1.3
         card_h = size[1] // 1.3
         layers = (num_cards + 3) // 6
@@ -65,7 +65,7 @@ def compose(config):
 
         return surf
 
-    def discard_deck(size, num_cards, top_card):
+    def discard_pile(size, num_cards, top_card):
         card_w = size[0] // 1.3
         card_h = size[1] // 1.3
         layers = (num_cards + 3) // 6
@@ -86,5 +86,5 @@ def compose(config):
         return surf
 
     config.style_add('background', 'card', 'setgame', card)
-    config.style_add('background', 'discard-deck', 'setgame', discard_deck)
-    config.style_add('background', 'draw-deck', 'setgame', draw_deck)
+    config.style_add('background', 'discard-pile', 'setgame', discard_pile)
+    config.style_add('background', 'draw-pile', 'setgame', draw_pile)
