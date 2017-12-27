@@ -1,6 +1,6 @@
 # Set-MP
 
-This is an implementation of the card game Set.
+This is an implementation of the card game [Set](https://en.wikipedia.org/wiki/Set_%28game%29).
 
 Currently only single-player mode is available, but multiplayer mode is planned (eventually, maybe).
 
