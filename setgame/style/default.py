@@ -140,3 +140,9 @@ def text_box_cursor_bg(size):
     surf = pygame.Surface(size)
     surf.fill((0, 0, 0))
     return surf
+
+
+def unknown_bg(size):
+    surf = pygame.Surface(size)
+    surf.fill((255, 0, 0))
+    return surf

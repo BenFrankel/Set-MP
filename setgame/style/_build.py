@@ -50,7 +50,7 @@ def compose(config):
     def draw_pile(size, num_cards, top_card):
         card_w = size[0] // 1.3
         card_h = size[1] // 1.3
-        layers = (num_cards + 3) // 6
+        layers = (num_cards + 3) // 6 + 1 if num_cards else 0
 
         surf = pygame.Surface(size, pygame.SRCALPHA)
         rect = surf.get_rect()
@@ -68,7 +68,7 @@ def compose(config):
     def discard_pile(size, num_cards, top_card):
         card_w = size[0] // 1.3
         card_h = size[1] // 1.3
-        layers = (num_cards + 3) // 6
+        layers = (num_cards + 3) // 6 + 1 if num_cards else 0
 
         surf = pygame.Surface(size, pygame.SRCALPHA)
         rect = surf.get_rect()

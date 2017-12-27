@@ -11,6 +11,12 @@ __all__ = ['default']
 
 
 default_style_pack = {
+    'default': {
+        'default': {
+            'background': _default.unknown_bg
+        }
+    },
+
     'button': {
         'default': {
             'background': _default.button_bg

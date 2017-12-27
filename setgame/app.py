@@ -6,25 +6,40 @@ import hgf
 
 
 class SetgameApp(hgf.App):
-    def load_hook(self):
-        main_seq = hgf.Sequence(w=self.w, h=self.h)
-        login_screen = LoginScreen(w=main_seq.w, h=main_seq.h)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.main_seq = None
+        self.main_hub = None
+        self.main_menu = None
+        self.login_screen = None
+        self.sp_game = None
 
-        main_seq.register_head(login_screen)
+    def on_load(self):
+        self.login_screen = LoginScreen()
 
-        main_hub = hgf.Hub(w=main_seq.w, h=main_seq.h)
+        self.main_menu = hgf.Menu(title='Set Game', opacity=0)
+        self.main_menu.add_button('Single Player', 'sp')
+        self.main_menu.add_button('Multiplayer', 'mp')
+        self.main_menu.add_button('Quit', 'exit')
 
-        main_menu = hgf.Menu(w=main_hub.w, h=main_hub.h, title='Set Game')
-        main_menu.add_button('Single Player', 'sp')
-        main_menu.add_button('Multiplayer', 'mp')
-        main_menu.add_button('Quit', 'exit')
-        main_hub.register_center(main_menu)
+        self.sp_game = GameHandler()
 
-        sp_game = GameHandler(w=main_hub.w, h=main_hub.h)
-        main_hub.register_node('sp', sp_game)
+        self.main_hub = hgf.Hub()
+        self.main_hub.register_center(self.main_menu)
+        self.main_hub.register_node('sp', self.sp_game)
 
-        main_seq.register_tail(main_hub)
-        self.register_load(main_seq)
+        self.main_seq = hgf.Sequence()
+        self.main_seq.register_tail(self.login_screen)
+        self.main_seq.register_tail(self.main_hub)
+
+        self.register_load(self.main_seq)
+
+    def refresh_proportions(self):
+        super().refresh_proportions()
+        self.main_seq.size = self.size
+
+    def refresh_layout(self):
+        self.main_seq.pos = self.pos
 
 
 launcher = hgf.AppManager('setgame', SetgameApp)
