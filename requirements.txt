@@ -1,0 +1,3 @@
+hgf==0.2.0
+pygame==1.9.3
+pyperclip==1.5.27
