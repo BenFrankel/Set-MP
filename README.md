@@ -24,5 +24,5 @@ Now you can start the game with `python main.py`.
 
 ## License
 
-This game is licensed under the [Apache 2.0](https://github.com/BenFrankel/hgf/blob/master/LICENSE) license, so you are free to use, distribute and modify it.
+This game is licensed under the [Apache 2.0](https://github.com/BenFrankel/Set-MP/blob/master/LICENSE) license, so you are free to use, distribute, and modify it.
 
