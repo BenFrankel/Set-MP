@@ -1,4 +1,4 @@
-# Set-MP
+# Set Game
 
 This is an implementation of the card game [Set](https://en.wikipedia.org/wiki/Set_%28game%29).
 
@@ -14,7 +14,7 @@ Currently only single-player mode is available, but multiplayer mode is planned 
 
 Download this repository with the following [git](https://git-scm.com/) command:
 
-`git clone https://github.com/BenFrankel/set-mp`
+`git clone https://github.com/benfrankel/set-game`
 
 ## Installation
 
@@ -24,5 +24,5 @@ Now you can start the game with `python main.py`.
 
 ## License
 
-This game is licensed under the [Apache 2.0](https://github.com/BenFrankel/Set-MP/blob/master/LICENSE) license, so you are free to use, distribute, and modify it.
+This game is licensed under the [Apache 2.0](https://github.com/benfrankel/set-game/blob/master/LICENSE) license, so you are free to use, distribute, and modify it.
 
